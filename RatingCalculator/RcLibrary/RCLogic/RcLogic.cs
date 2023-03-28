@@ -22,35 +22,35 @@ namespace RcLibrary.RCLogic
 
         private List<DungeonMetrics> dungeonMatrix = new List<DungeonMetrics>()
         {
-            new DungeonMetrics { Level = 30 , Base = 240},
-            new DungeonMetrics { Level = 29 , Base = 233},
-            new DungeonMetrics { Level = 28 , Base = 226},
-            new DungeonMetrics { Level = 27 , Base = 219},
-            new DungeonMetrics { Level = 26 , Base = 212},
-            new DungeonMetrics { Level = 25 , Base = 205},
-            new DungeonMetrics { Level = 24 , Base = 198},
-            new DungeonMetrics { Level = 23 , Base = 191},
-            new DungeonMetrics { Level = 22 , Base = 184},
-            new DungeonMetrics { Level = 21 , Base = 177},
-            new DungeonMetrics { Level = 20 , Base = 170},
-            new DungeonMetrics { Level = 19 , Base = 163},
-            new DungeonMetrics { Level = 18 , Base = 156},
-            new DungeonMetrics { Level = 17 , Base = 149},
-            new DungeonMetrics { Level = 16 , Base = 142},
-            new DungeonMetrics { Level = 15 , Base = 135},
-            new DungeonMetrics { Level = 14 , Base = 128},
-            new DungeonMetrics { Level = 13 , Base = 121},
-            new DungeonMetrics { Level = 12 , Base = 114},
-            new DungeonMetrics { Level = 11 , Base = 107},
-            new DungeonMetrics { Level = 10 , Base = 100},
-            new DungeonMetrics { Level = 9  , Base = 85 },
-            new DungeonMetrics { Level = 8  , Base = 80 },
-            new DungeonMetrics { Level = 7  , Base = 75 },
-            new DungeonMetrics { Level = 6  , Base = 65 },
-            new DungeonMetrics { Level = 5  , Base = 60 },
-            new DungeonMetrics { Level = 4  , Base = 55 },
-            new DungeonMetrics { Level = 3  , Base = 45 },
             new DungeonMetrics { Level = 2  , Base = 40 },
+            new DungeonMetrics { Level = 3  , Base = 45 },
+            new DungeonMetrics { Level = 4  , Base = 55 },
+            new DungeonMetrics { Level = 5  , Base = 60 },
+            new DungeonMetrics { Level = 6  , Base = 65 },
+            new DungeonMetrics { Level = 7  , Base = 75 },
+            new DungeonMetrics { Level = 8  , Base = 80 },
+            new DungeonMetrics { Level = 9  , Base = 85 },
+            new DungeonMetrics { Level = 10 , Base = 100},
+            new DungeonMetrics { Level = 11 , Base = 107},
+            new DungeonMetrics { Level = 12 , Base = 114},
+            new DungeonMetrics { Level = 13 , Base = 121},
+            new DungeonMetrics { Level = 14 , Base = 128},
+            new DungeonMetrics { Level = 15 , Base = 135},
+            new DungeonMetrics { Level = 16 , Base = 142},
+            new DungeonMetrics { Level = 17 , Base = 149},
+            new DungeonMetrics { Level = 18 , Base = 156},
+            new DungeonMetrics { Level = 19 , Base = 163},
+            new DungeonMetrics { Level = 20 , Base = 170},
+            new DungeonMetrics { Level = 21 , Base = 177},
+            new DungeonMetrics { Level = 22 , Base = 184},
+            new DungeonMetrics { Level = 23 , Base = 191},
+            new DungeonMetrics { Level = 24 , Base = 198},
+            new DungeonMetrics { Level = 25 , Base = 205},
+            new DungeonMetrics { Level = 26 , Base = 212},
+            new DungeonMetrics { Level = 27 , Base = 219},
+            new DungeonMetrics { Level = 28 , Base = 226},
+            new DungeonMetrics { Level = 29 , Base = 233},
+            new DungeonMetrics { Level = 30 , Base = 240},
         };
 
         public RcLogic(ILogger<RcLogic> logger,
@@ -231,7 +231,7 @@ namespace RcLibrary.RCLogic
                 //}
                 if (bestScore < 245)
                 {
-                    var dungeonMetric = dungeonMatrix.Where(x => bestScore >= x.Min && (bestScore >= x.Base || bestScore <= x.Base - 5)).FirstOrDefault();
+                    var dungeonMetric = dungeonMatrix.Where(x => bestScore <= x.Max && (bestScore >= x.Base || bestScore <= x.Base - 5)).FirstOrDefault();
                     if (dungeonMetric != null)
                     {
                         double? time = 0;
@@ -262,12 +262,12 @@ namespace RcLibrary.RCLogic
 
                         if (bestScore < dungeonMetric.Base)
                         {
-                            var timePercent = ((dungeonMetric.Base - 5 - bestScore) / 0.125) / 100;
+                            var timePercent = Math.Min(0.4, (double)((dungeonMetric.Base - bestScore - 5) / 12.5));
                             time = runPool[i].TimeLimit + (runPool[i].TimeLimit * timePercent);
                         }
                         else
                         {
-                            var timePercent = ((bestScore - dungeonMetric.Base) / 0.125) / 100;
+                            var timePercent = Math.Min(0.4, (double)((bestScore - dungeonMetric.Base) / 12.5));
                             time = runPool[i].TimeLimit - (runPool[i].TimeLimit * timePercent);
                         }
                         output.Add(new KeyRun
@@ -276,7 +276,7 @@ namespace RcLibrary.RCLogic
                             KeyLevel = dungeonMetric.Level,
                             TimeLimit = runPool[i].TimeLimit,
                             ClearTimeMs = (int)time,
-                            Affixes = new List<Affix> { thisWeeksAffix  },
+                            Affixes = new List<Affix> { thisWeeksAffix },
                             OldScore = runPool[i].Score,
                             NewScore = (bestScore * 1.5) + (altScore * 0.5)
                         });

@@ -37,7 +37,7 @@
                         <th>Level</th>
                         <th>Affix</th>
                         <th>Time Limit</th>
-                        <th>Complete Time</th>
+                        <th>Complete In (or better)</th>
                         <th>Rating Adjust</th>
                     </tr>
                 </thead>
@@ -46,7 +46,10 @@
                     {
                         <tr>
                             <td>@run.DungeonName</td>
-                            <td>@run.KeyLevel</td>
+                                <td style="white-space:nowrap">
+                                    @run.KeyLevel @for (var i = 0; i < run.PlussesCount; i++)
+                                    {@Html.Raw("+")}
+                    </td>
                             <td>
                                 <table>
                                     <tr>
@@ -60,8 +63,8 @@
                                 </table>
                             </td>
                             <td>@run.TimeLimitString</td>
-                            <td style="white-space:nowrap">@run.ClearTimeString (<span class="@(run.OverTime?"text-danger":"text-success")"> @(run.OverTime ? "over" : "under") by @run.OverUnderTime </span>)</td>
-                            <td>+@run.ScoreAdjust</td>
+                            <td style="white-space:nowrap;text-align:center">@run.ClearTimeString<br /><span class="@(run.OverTime?"text-danger":"text-success")"> @(run.OverTime ? "over" : "under") by @run.OverUnderTime  </span></td>
+                                <td>+@run.ScoreAdjust</td>
                         </tr>
                     }
                 </tbody>

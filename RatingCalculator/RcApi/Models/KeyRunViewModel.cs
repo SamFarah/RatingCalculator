@@ -33,10 +33,10 @@ namespace RcApi.Models
         public string OverUnderTime
         {
             get
-            {                
+            {
                 if (ClearTimeMs > TimeLimit)
                 {
-                    
+
                     var timeOver = ClearTimeMs - TimeLimit;
                     return TimeSpan.FromMilliseconds(timeOver).ToString(@"mm\:ss\.ff");
                 }
@@ -50,7 +50,16 @@ namespace RcApi.Models
         }
 
         public bool OverTime { get { return ClearTimeMs > TimeLimit; } }
-        public string ScoreAdjust { get { return Math.Round((NewScore - OldScore)??0,0).ToString(); } }
+        public string ScoreAdjust { get { return Math.Round((NewScore - OldScore) ?? 0, 0).ToString(); } }
+        public double runTimePercent { get { return (double)(TimeLimit - ClearTimeMs) / (double)TimeLimit; } }
+        public int PlussesCount
+        {
+            get
+            {
+                var per = runTimePercent;
+                return per >= 0.4 ? 3 : per >= 0.2 ? 2 : per >= 0 ? 1 : 0;
+            }
+        }
 
 
 
