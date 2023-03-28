@@ -1,0 +1,74 @@
+﻿@model WowCharacterViewModel
+
+<div class="row">
+    <div style="width:106px">
+        <img src="@Model.ThumbnailUrl" alt="@Model.Name" />
+    </div>
+    <div class="col-md-9">
+        <div class="row">@Model.Name</div>
+        <div class="row">&lt;@Model.Guild&gt;</div>
+        <div class="row">(@Model.Region?.ToUpper()) @Model.Realm</div>
+        <div class="row">@Model.Race @Model.ActiveSpec @Model.Class</div>
+    </div>
+</div>
+<div class="row">
+    Rating: @Model.Rating <br />
+    Target Rating: @Model.TargetRating
+    <br /><br />
+    @if (Model.Rating >= Model.TargetRating)
+    {
+        <div class="alert alert-success">You already have that rating</div>
+    }
+    else
+    {
+        if ((Model.RunOptions?.Count?? 0) == 0)
+        {
+            <span>WIP you cannot get to this target this week alone.. TODO: show min can be done this week to catch up</span>
+        }
+        else
+        {
+            <span>Options:  </span>
+        @foreach (var runOption in Model.RunOptions)
+        {
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Dungoen Name</th>
+                        <th>Level</th>
+                        <th>Affix</th>
+                        <th>Time Limit</th>
+                        <th>Complete Time</th>
+                        <th>Rating Adjust</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var run in runOption)
+                    {
+                        <tr>
+                            <td>@run.DungeonName</td>
+                            <td>@run.KeyLevel</td>
+                            <td>
+                                <table>
+                                    <tr>
+                                        @foreach (var affix in run.Affixes)
+                                        {
+                                            <td>
+                                                <img src="@affix.IconUrl" alt="@affix.Name" title="@affix.Name" width="32" />
+                                            </td>
+                                        }
+                                    </tr>
+                                </table>
+                            </td>
+                            <td>@run.TimeLimitString</td>
+                            <td style="white-space:nowrap">@run.ClearTimeString (<span class="@(run.OverTime?"text-danger":"text-success")"> @(run.OverTime ? "over" : "under") by @run.OverUnderTime </span>)</td>
+                            <td>+@run.ScoreAdjust</td>
+                        </tr>
+                    }
+                </tbody>
+
+            </table>
+        }
+        }
+        
+    }
+</div>
