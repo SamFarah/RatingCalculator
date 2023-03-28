@@ -36,7 +36,7 @@ namespace RcApi.Controllers
             if (!_memoryCache.TryGetValue(cacheKey, out cachedValue))
             {
                 cachedValue = await _rc.GetWowStaticData();
-                var cacheEntryOptions = new MemoryCacheEntryOptions().SetAbsoluteExpiration(TimeSpan.FromDays(1));
+                var cacheEntryOptions = new MemoryCacheEntryOptions().SetAbsoluteExpiration(TimeSpan.FromHours(1));
                 _memoryCache.Set(cacheKey, cachedValue, cacheEntryOptions);
             }
             return  cachedValue;
