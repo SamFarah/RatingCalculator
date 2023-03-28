@@ -18,20 +18,11 @@
                 data: {
                     region,
                     realm,
-                    name,
-                    season,
+                    name,                    
                     targetRating
                 },
-                beforeSend: function () {
-                    //$("#status" + wellId).html("<span style='color: #ff7837;font-weight: bold; '>Loading...</span>");
-                    //$("#UpdateBtn" + wellId).prop( "disabled", true );                            
-                },
-                success: function (result) { $("#CharInfoDiv").html(result);},                
-                complete: function () {
-                    /*$(".dropDown").select2();
-                    showHideGroupAction();
-                    $('input:checkbox').change(function () { showHideGroupAction() });*/
-                },
+                beforeSend: function () { $("#CharInfoDiv").append("<div class='loader'/>"); },
+                success: function (result) { $("#CharInfoDiv").html(result);},                               
                 error: function (xhr) {$("#CharInfoDiv").html(`
                         <div class="alert alert-danger d-flex align-items-center" role="alert">          
                           <div>
@@ -46,8 +37,8 @@
 }
 
 <div class="row">
-    <div class="col-md-5">
-        <div class="card">
+    <div class="col-md-5 ">
+        <div class="card sticky-top">
             <div class="card-header">
                 Search
             </div>
@@ -57,7 +48,12 @@
                     @Html.Label("region","Region",new {@class = "col-md-4 col-form-label text-end"})
 
                     <div class="col-md-8">
-                        @Html.DropDownList("region",new SelectList(Enum.GetValues(typeof(Enums.Regions))),"Select Region",new { @class = "form-control" })
+                        @Html.DropDownList("region",
+                        Enum.GetNames(typeof(Enums.Regions)).ToList().Select(x=> new SelectListItem {
+                        Text = x,
+                        Value = x.ToLower(),
+                        Selected = x=="US"}),
+                        "Select Region",new { @class = "form-control" })
                     </div>
                 </div>
                 <div class="mb-3 row">
@@ -71,19 +67,11 @@
                     <div class="col-md-8">
                         @Html.TextBox("name","",new { @class = "form-control" })
                     </div>
-                </div>
-                <div class="mb-3 row">
-                    @Html.Label("season","Season",new {@class = "col-md-4 col-form-label text-end"})
-                    <div class="col-md-8">
-                        @Html.DropDownList("season",
-                        (List<SelectListItem>)ViewBag.Seasons,
-                        "Select Season", new {@class="form-control"})
-                    </div>
-                </div>
+                </div>                
                 <div class="mb-3 row">
                     @Html.Label("targetRating","Target Rating",new {@class = "col-md-4 col-form-label text-end"})
                     <div class="col-md-8">
-                        @Html.TextBox("targetRating","",new { @class = "form-control" })
+                        @Html.TextBox("targetRating","",new { @class = "form-control",  type="number"  })
                     </div>
                 </div>
                 <div class="mb-3 row">
@@ -100,11 +88,10 @@
             <div class="card-header">
                 Info
             </div>
-            <div class="card-body" id="CharInfoDiv">
+            <div class="card-body" id="CharInfoDiv">                
                 <div class="text-center">
                     Enter info to start
                 </div>
-
             </div>
         </div>
     </div>

@@ -1,9 +1,4 @@
 ﻿using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace RcLibrary.Models
 {
@@ -31,7 +26,7 @@ namespace RcLibrary.Models
         public int KeyPlusses { get; set; }
 
         [JsonProperty(PropertyName = "map_challenge_mode_id")]
-        public int ChallengeModeId { get; set; }        
+        public int ChallengeModeId { get; set; }
 
         [JsonProperty(PropertyName = "zone_id")]
         public int ZoneId { get; set; }
@@ -44,8 +39,8 @@ namespace RcLibrary.Models
 
         [JsonProperty(PropertyName = "url")]
         public string? RunUrl { get; set; }
-        
+
         public double? OldScore { get; set; }
-        public double? NewScore { get; set; }        
+        public double? NewScore { get; set; }
     }
 }

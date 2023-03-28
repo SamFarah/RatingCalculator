@@ -1,15 +1,11 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RcLibrary.Helpers;
 using RcLibrary.Models;
 using RcLibrary.Models.Configurations;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography.X509Certificates;
-using static System.Net.Mime.MediaTypeNames;
-using static System.Net.WebRequestMethods;
-using System.Xml.Linq;
 
 namespace RcLibrary.RCLogic
 {
@@ -19,8 +15,9 @@ namespace RcLibrary.RCLogic
         private readonly IApiHelper _raiderIoApi;
         private readonly IMapper _mapper;
         private readonly Settings _config;
+        private readonly IMemoryCache _memoryCache;
 
-        private List<DungeonMetrics> dungeonMatrix = new List<DungeonMetrics>()
+        private readonly List<DungeonMetrics> dungeonMatrix = new List<DungeonMetrics>()
         {
             new DungeonMetrics { Level = 2  , Base = 40 },
             new DungeonMetrics { Level = 3  , Base = 45 },
@@ -56,13 +53,29 @@ namespace RcLibrary.RCLogic
         public RcLogic(ILogger<RcLogic> logger,
                        IApiHelper raiderIoApi,
                        IOptions<Settings> config,
-                       IMapper mapper)
+                       IMapper mapper,
+                       IMemoryCache memoryCache)
         {
             _logger = logger;
             _config = config.Value;
             _raiderIoApi = raiderIoApi;
             _mapper = mapper;
+            _memoryCache = memoryCache;
             _raiderIoApi.InitializeClient(_config?.RaiderIOAPI ?? "");
+
+        }
+
+        private async Task<T?> GetCachedValue<T>(string cacheKey, string region, Func<string, Task<T>> getter)
+        {
+            cacheKey = $"{cacheKey}{region}";
+            T? cachedValue;
+            if (!_memoryCache.TryGetValue(cacheKey, out cachedValue))
+            {
+                cachedValue = await getter(region);
+                var cacheEntryOptions = new MemoryCacheEntryOptions().SetAbsoluteExpiration(TimeSpan.FromHours(1));
+                _memoryCache.Set(cacheKey, cachedValue, cacheEntryOptions);
+            }
+            return cachedValue;
         }
 
         private async Task<RaiderIoCharacter?> GetCharacter(string region, string realm, string name, string season)
@@ -90,24 +103,24 @@ namespace RcLibrary.RCLogic
                 _logger.LogError(ex, "Error getting character from raider.io:{errorMessage}", ex.Message);
                 return null;
             }
-
         }
 
-        public async Task<WowStaticData?> GetWowStaticData()
+        private async Task<Season?> GetWowCurrentSeason(string region)
         {
             var qsParams = new Dictionary<string, string>() { { "expansion_id", _config.ExpansionId.ToString() } };
             var endpoint = new Uri(QueryHelpers.AddQueryString("mythic-plus/static-data", qsParams), UriKind.Relative);
             try
             {
                 var staticData = await _raiderIoApi.GetAsync<WowStaticData>(endpoint.ToString());
-                return staticData;
+                var currentDate = DateTime.UtcNow;
+                var season = staticData?.Seasons?.Where(x => x != null && currentDate >= x.Starts?[region] && (x.Ends?[region] == null || currentDate < x.Ends?[region])).FirstOrDefault();
+                return season;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting static data from raider.io:{errorMessage}", ex.Message);
                 return null;
             }
-
         }
 
         public async Task<Affix?> GetCurrentBaseAffix(string region)
@@ -126,10 +139,14 @@ namespace RcLibrary.RCLogic
             }
         }
 
-        public async Task<ProcessedCharacter?> ProcessCharacter(string region, string realm, string name, string season, double targetRating, WowStaticData? staticWowData)
+        public async Task<ProcessedCharacter?> ProcessCharacter(string region, string realm, string name, double targetRating)
         {
-            var thisWeeksAffix = await GetCurrentBaseAffix(region);
-            var raiderIoToon = await GetCharacter(region, realm, name, season);
+            var seasonInfo = await GetCachedValue("SeasonInfo", region, async => GetWowCurrentSeason(region));
+            if (seasonInfo == null) { return null; }
+            var seasonName = seasonInfo.Slug;
+
+            var thisWeeksAffix = await GetCachedValue("WeeksAffix", region, async => GetCurrentBaseAffix(region));
+            var raiderIoToon = await GetCharacter(region, realm, name, seasonName);
             if (raiderIoToon == null) { return null; }
             var allBestPlayerRuns = new List<KeyRun>();
             int FortAffixID = 10;
@@ -140,7 +157,7 @@ namespace RcLibrary.RCLogic
 
             ProcessedCharacter output = _mapper.Map<ProcessedCharacter>(raiderIoToon);
             output.TargetRating = targetRating;
-            var selectedSeason = raiderIoToon?.MPlusSeasonScores?.Where(x => x.Season == season).FirstOrDefault();
+            var selectedSeason = raiderIoToon?.MPlusSeasonScores?.Where(x => x.Season == seasonName).FirstOrDefault();
             if (selectedSeason?.Scores != null)
             {
                 output.Rating = selectedSeason.Scores["all"];
@@ -148,8 +165,6 @@ namespace RcLibrary.RCLogic
 
             if (output.Rating >= targetRating) { return output; }
 
-            //var ratingNeeded = targetRating - output.Rating;
-            var seasonInfo = staticWowData?.Seasons?.Where(x => x.Slug == season).FirstOrDefault();
             if (seasonInfo?.Dungeons != null)
             {
                 var SeasonDungoens = _mapper.Map<List<DungeonWithScores>>(seasonInfo.Dungeons);
@@ -174,7 +189,7 @@ namespace RcLibrary.RCLogic
                     {
                         if (dungeon.Score > maxScore) { maxScore = dungeon.Score; }
                         var extraRating = (dungeon.Score - ratingPerDung) / seasonInfo.Dungeons.Count;
-                        ratingPerDung -= extraRating;// (targetRating - dungeon.Score + ratingPerDung) / seasonInfo.Dungeons.Count;
+                        ratingPerDung -= extraRating;
                     }
                     else
                     {
@@ -185,18 +200,15 @@ namespace RcLibrary.RCLogic
                 runPool = runPool.OrderBy(x => x.Score).ToList();
                 for (int i = 1; i <= runPool.Count; i++)
                 {
-                    var targetDungeonScore = (targetRating - (output.Rating - runPool.Take(i).Sum(x => x.Score))) / i;// (x=>x.Score) + ((targetRating - output.Rating) / i);
+                    var targetDungeonScore = (targetRating - (output.Rating - runPool.Take(i).Sum(x => x.Score))) / i;
                     if (targetDungeonScore > maxScore || targetDungeonScore > maxObtainableDunScore) continue;
                     temp.Add(getMinRuns(targetDungeonScore, runPool, i, thisWeeksAffix));
                 }
                 output.RunOptions = new List<List<KeyRun>>();
                 output.RunOptions.AddRange(temp);
-                //output.RunOptions.Add(temp.First());
-                //output.RunOptions.Add(temp.Last());
             }
 
             return output;
-
         }
 
         private List<KeyRun> getMinRuns(double? targetDungeonScore, List<DungeonWithScores> runPool, int runCount, Affix? thisWeeksAffix)
@@ -205,60 +217,16 @@ namespace RcLibrary.RCLogic
             List<KeyRun> output = new List<KeyRun>();
             for (int i = 0; i < runCount; i++)
             {
-                var altScore = (thisWeeksAffix.Id == 9 ? runPool[i].FortScore : runPool[i].TyrScore);// Math.Max(runPool[i].FortScore ?? 0, runPool[i].TyrScore ?? 0);
+                var altScore = (thisWeeksAffix.Id == 9 ? runPool[i].FortScore : runPool[i].TyrScore);
                 var bestScore = (targetDungeonScore - (altScore * 0.5)) / 1.5;
-                //if (thisWeeksAffix.Id== 9) //tyr
-                //{
-                //    if (altScore == runPool[i].FortScore )
-                //    {
-                //        bestScore = (targetDungeonScore - (altScore * 0.5)) / 1.5;
-                //    }
-                //    else
-                //    {
-                //        bestScore = (targetDungeonScore - (altScore * 1.5)) / 0.5;
-                //    }
-                //}
-                //else  // fort
-                //{
-                //    if (altScore == runPool[i].FortScore)
-                //    {
-                //        bestScore = (targetDungeonScore - (altScore * 1.5)) / 0.5;
-                //    }
-                //    else
-                //    {
-                //        bestScore = (targetDungeonScore - (altScore * 0.5)) / 1.5;
-                //    }
-                //}
+
                 if (bestScore < 245)
                 {
                     var dungeonMetric = dungeonMatrix.Where(x => bestScore <= x.Max && (bestScore >= x.Base || bestScore <= x.Base - 5)).FirstOrDefault();
                     if (dungeonMetric != null)
                     {
                         double? time = 0;
-                        //Affix affix;
 
-                        //if (runPool[i].FortScore < runPool[i].TyrScore)
-                        //{
-                        //    affix = new Affix
-                        //    {
-                        //        Id = 10,
-                        //        Name = "Fortified",
-                        //        Description = "Non-boss enemies have 20% more health and inflict up to 30% increased damage.",
-                        //        IconUrl = "ability_toughness",
-                        //        WowheadUrl = "https://wowhead.com/affix=10"
-                        //    };
-                        //}
-                        //else
-                        //{
-                        //    affix = new Affix
-                        //    {
-                        //        Id = 9,
-                        //        Name = "Tyrannical",
-                        //        Description = "Bosses have 30% more health. Bosses and their minions inflict up to 15% increased damage.",
-                        //        IconUrl = "achievement_boss_archaedas",
-                        //        WowheadUrl = "https://wowhead.com/affix=9\r\n"
-                        //    };
-                        //}
 
                         if (bestScore < dungeonMetric.Base)
                         {
@@ -281,21 +249,13 @@ namespace RcLibrary.RCLogic
                             NewScore = (bestScore * 1.5) + (altScore * 0.5)
                         });
                     }
-
                 }
                 else
                 {
-
-
+                    // TDOD - Add functionality to calcualte more than just this week
                 }
-
-
-
             }
-
             return output;
         }
-
-
     }
 }

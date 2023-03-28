@@ -21,57 +21,67 @@
     }
     else
     {
-        if ((Model.RunOptions?.Count?? 0) == 0)
+        if ((Model.RunOptions?.Count ?? 0) == 0)
         {
             <span>WIP you cannot get to this target this week alone.. TODO: show min can be done this week to catch up</span>
         }
         else
         {
-            <span>Options:  </span>
-        @foreach (var runOption in Model.RunOptions)
-        {
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Dungeon Name</th>
-                        <th>Level</th>
-                        <th>Affix</th>
-                        <th>Time Limit</th>
-                        <th>Complete In (or better)</th>
-                        <th>Rating Adjust</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var run in runOption)
-                    {
+            <h5>Optios: </h5>
+            var optionCounter = 0;
+            @foreach (var runOption in Model.RunOptions)
+            {
+                <h6>
+                    Option @(++optionCounter) @(optionCounter == 1 ? "(Fastest)" : optionCounter == Model.RunOptions?.Count ? "(Easiest)" :"")
+                    
+                    <small class="text-muted">Finish the following @(@runOption.Count == 1 ? "dungoen" : $"{@runOption.Count} dungeons") within the suggested timers (or faster) </small>
+                </h6>
+                
+                <table class="table">
+                    <thead>
                         <tr>
-                            <td>@run.DungeonName</td>
+                            <th>Dungeon Name</th>
+                            <th>Level</th>
+                            <th>Affix</th>
+                            <th>Time Limit</th>
+                            <th>Complete In</th>
+                            <th>Rating Adjust</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var run in runOption)
+                        {
+                            <tr>
+                                <td>@run.DungeonName</td>
                                 <td style="white-space:nowrap">
                                     @run.KeyLevel @for (var i = 0; i < run.PlussesCount; i++)
-                                    {@Html.Raw("+")}
-                    </td>
-                            <td>
-                                <table>
-                                    <tr>
-                                        @foreach (var affix in run.Affixes)
-                                        {
-                                            <td>
-                                                <img src="@affix.IconUrl" alt="@affix.Name" title="@affix.Name" width="32" />
-                                            </td>
-                                        }
-                                    </tr>
-                                </table>
-                            </td>
-                            <td>@run.TimeLimitString</td>
-                            <td style="white-space:nowrap;text-align:center">@run.ClearTimeString<br /><span class="@(run.OverTime?"text-danger":"text-success")"> @(run.OverTime ? "over" : "under") by @run.OverUnderTime  </span></td>
+                                    {
+                                        @Html.Raw("+")
+                                    }
+                                </td>
+                                <td>
+                                    <table>
+                                        <tr>
+                                            @foreach (var affix in run.Affixes)
+                                            {
+                                                <td>
+                                                    <img src="@affix.IconUrl" alt="@affix.Name" title="@affix.Name" width="32" />
+                                                </td>
+                                            }
+                                        </tr>
+                                    </table>
+                                </td>
+                                <td>@run.TimeLimitString</td>
+                                <td style="white-space:nowrap;text-align:center">@run.ClearTimeString<br /><span class="@(run.OverTime?"text-danger":"text-success")"> @(run.OverTime ? "over" : "under") by @run.OverUnderTime  </span></td>
                                 <td>+@run.ScoreAdjust</td>
-                        </tr>
-                    }
-                </tbody>
+                            </tr>
+                        }
+                    </tbody>
 
-            </table>
+                </table>
+                <hr />
+            }
         }
-        }
-        
+
     }
 </div>

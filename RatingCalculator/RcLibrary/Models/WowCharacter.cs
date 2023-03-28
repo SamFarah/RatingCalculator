@@ -1,14 +1,9 @@
 ﻿using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace RcLibrary.Models
 {
     public class WowCharacter : RealmIntity
-    {        
+    {
         [JsonProperty(PropertyName = "race")]
         public string? Race { get; set; }
 
@@ -32,8 +27,8 @@ namespace RcLibrary.Models
 
         [JsonProperty(PropertyName = "guild")]
         public RealmIntity? Guild { get; set; }
-        
 
-      
-    }   
+
+
+    }
 }
