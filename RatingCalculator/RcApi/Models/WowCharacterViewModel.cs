@@ -1,4 +1,6 @@
 ﻿
+using Newtonsoft.Json;
+
 namespace RcApi.Models
 {
     public class WowCharacterViewModel
@@ -13,6 +15,8 @@ namespace RcApi.Models
         public string? ActiveSpec { get; set; }
         public double? Rating { get; set; }
         public double? TargetRating { get; set; }
-        public List<List<KeyRunViewModel>>? RunOptions { get; set; }
+        public List<List<KeyRunViewModel>>? RunOptions { get; set; }        
+        public DateTime LastCrawledAt { get; set; }        
+        public string? ProfileUrl { get; set; }
     }
 }

@@ -28,7 +28,11 @@ namespace RcLibrary.Models
         [JsonProperty(PropertyName = "guild")]
         public RealmIntity? Guild { get; set; }
 
+        [JsonProperty(PropertyName = "last_crawled_at")]
+        public DateTime LastCrawledAt { get; set; }
 
+        [JsonProperty(PropertyName = "profile_url")]
+        public string? ProfileUrl { get; set; }
 
     }
 }

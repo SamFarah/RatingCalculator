@@ -65,13 +65,13 @@ namespace RcLibrary.RCLogic
 
         }
 
-        private async Task<T?> GetCachedValue<T>(string cacheKey, string region, Func<string, Task<T>> getter)
+        private async Task<T?> GetCachedValue<T>(string cacheKey, string region, Func<Task<T>> getter)
         {
             cacheKey = $"{cacheKey}{region}";
             T? cachedValue;
             if (!_memoryCache.TryGetValue(cacheKey, out cachedValue))
             {
-                cachedValue = await getter(region);
+                cachedValue = await getter();
                 var cacheEntryOptions = new MemoryCacheEntryOptions().SetAbsoluteExpiration(TimeSpan.FromHours(1));
                 _memoryCache.Set(cacheKey, cachedValue, cacheEntryOptions);
             }
@@ -102,6 +102,23 @@ namespace RcLibrary.RCLogic
             {
                 _logger.LogError(ex, "Error getting character from raider.io:{errorMessage}", ex.Message);
                 return null;
+            }
+        }
+
+        private async Task<int> GetDungoenTimeLimit(string region, string seasonName, string dungeonName)
+        {
+            var qsParams = new Dictionary<string, string>() { { "region", region }, { "season", seasonName }, { "dungeon", dungeonName }, };
+            var endpoint = new Uri(QueryHelpers.AddQueryString("mythic-plus/runs", qsParams), UriKind.Relative);
+            try
+            {
+                var runDetails = await _raiderIoApi.GetAsync<RunsResponse>(endpoint.ToString());
+                var timeLimit = (runDetails?.Rankings?.First()?.run?.Dungeon?.TimeLimitMS) ?? 0;
+                return timeLimit;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting static data from raider.io:{errorMessage}", ex.Message);
+                return 0;
             }
         }
 
@@ -141,11 +158,11 @@ namespace RcLibrary.RCLogic
 
         public async Task<ProcessedCharacter?> ProcessCharacter(string region, string realm, string name, double targetRating)
         {
-            var seasonInfo = await GetCachedValue("SeasonInfo", region, async => GetWowCurrentSeason(region));
+            var seasonInfo = await GetCachedValue("SeasonInfo", region, () => GetWowCurrentSeason(region));
             if (seasonInfo == null) { return null; }
             var seasonName = seasonInfo.Slug;
 
-            var thisWeeksAffix = await GetCachedValue("WeeksAffix", region, async => GetCurrentBaseAffix(region));
+            var thisWeeksAffix = await GetCachedValue("WeeksAffix", region, () => GetCurrentBaseAffix(region));
             var raiderIoToon = await GetCharacter(region, realm, name, seasonName);
             if (raiderIoToon == null) { return null; }
             var allBestPlayerRuns = new List<KeyRun>();
@@ -193,32 +210,39 @@ namespace RcLibrary.RCLogic
                     }
                     else
                     {
+                        if (dungeon.TimeLimit == 0)
+                        {
+                            dungeon.TimeLimit = await GetCachedValue($"{dungeon.Slug}TimeLimit", region, () => GetDungoenTimeLimit(region, seasonName, dungeon.Slug ?? ""));
+                        }
                         runPool.Add(dungeon);
                     }
                 }
-                var temp = new List<List<KeyRun>>();
+                
+                output.RunOptions = new List<List<KeyRun>>();
                 runPool = runPool.OrderBy(x => x.Score).ToList();
                 for (int i = 1; i <= runPool.Count; i++)
                 {
                     var targetDungeonScore = (targetRating - (output.Rating - runPool.Take(i).Sum(x => x.Score))) / i;
-                    if (targetDungeonScore > maxScore || targetDungeonScore > maxObtainableDunScore) continue;
-                    temp.Add(getMinRuns(targetDungeonScore, runPool, i, thisWeeksAffix));
-                }
-                output.RunOptions = new List<List<KeyRun>>();
-                output.RunOptions.AddRange(temp);
+                    if (targetDungeonScore > maxObtainableDunScore) continue;
+                    var anOptionList = getMinRuns(targetDungeonScore, runPool, i, thisWeeksAffix);
+                    if (anOptionList != null)
+                    {
+                        output.RunOptions.Add(anOptionList);
+                    }
+                }                               
             }
 
             return output;
         }
 
-        private List<KeyRun> getMinRuns(double? targetDungeonScore, List<DungeonWithScores> runPool, int runCount, Affix? thisWeeksAffix)
+        private List<KeyRun>? getMinRuns(double? targetDungeonScore, List<DungeonWithScores> runPool, int runCount, Affix? thisWeeksAffix)
         {
             if (thisWeeksAffix == null) { throw new Exception("Cant get this weeks affix"); }
             List<KeyRun> output = new List<KeyRun>();
             for (int i = 0; i < runCount; i++)
             {
-                var altScore = (thisWeeksAffix.Id == 9 ? runPool[i].FortScore : runPool[i].TyrScore);
-                var bestScore = (targetDungeonScore - (altScore * 0.5)) / 1.5;
+                var altScore = (thisWeeksAffix.Id == 9 ? runPool[i].FortScore : runPool[i].TyrScore) ?? 0;
+                var bestScore = ((targetDungeonScore - (altScore * 0.5)) / 1.5) ?? 0;
 
                 if (bestScore < 245)
                 {
@@ -253,6 +277,7 @@ namespace RcLibrary.RCLogic
                 else
                 {
                     // TDOD - Add functionality to calcualte more than just this week
+                    return null;
                 }
             }
             return output;
