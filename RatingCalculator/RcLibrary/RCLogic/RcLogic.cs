@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using RcLibrary.Helpers;
 using RcLibrary.Models;
 using RcLibrary.Models.Configurations;
+using System.Runtime.InteropServices;
 
 namespace RcLibrary.RCLogic
 {
@@ -49,6 +50,25 @@ namespace RcLibrary.RCLogic
             new DungeonMetrics { Level = 29 , Base = 233},
             new DungeonMetrics { Level = 30 , Base = 240},
         };
+
+        private readonly Affix fortAffix = new Affix
+        {
+            Id = 10,
+            Name = "Fortified",
+            Description = "Non-boss enemies have 20% more health and inflict up to 30% increased damage.",
+            IconUrl = "ability_toughness",
+            WowheadUrl = "https://wowhead.com/affix=10"
+        };
+
+        private readonly Affix tyrAffix = new Affix
+        {
+            Id = 9,
+            Name = "Tyrannical",
+            Description = "Bosses have 30% more health. Bosses and their minions inflict up to 15% increased damage.",
+            IconUrl = "achievement_boss_archaedas",
+            WowheadUrl = "https://wowhead.com/affix=9"
+        };
+
 
         public RcLogic(ILogger<RcLogic> logger,
                        IApiHelper raiderIoApi,
@@ -156,11 +176,11 @@ namespace RcLibrary.RCLogic
             }
         }
 
-        public async Task<ProcessedCharacter?> ProcessCharacter(string region, string realm, string name, double targetRating)
+        public async Task<ProcessedCharacter?> ProcessCharacter(string region, string realm, string name, double targetRating, bool thisweekOnly)
         {
             var seasonInfo = await GetCachedValue("SeasonInfo", region, () => GetWowCurrentSeason(region));
             if (seasonInfo == null) { return null; }
-            var seasonName = seasonInfo.Slug;
+            var seasonName = seasonInfo.Slug ?? "";
 
             var thisWeeksAffix = await GetCachedValue("WeeksAffix", region, () => GetCurrentBaseAffix(region));
             var raiderIoToon = await GetCharacter(region, realm, name, seasonName);
@@ -174,6 +194,7 @@ namespace RcLibrary.RCLogic
 
             ProcessedCharacter output = _mapper.Map<ProcessedCharacter>(raiderIoToon);
             output.TargetRating = targetRating;
+            output.ThisWeekAffixId = thisWeeksAffix?.Id ?? 0;
             var selectedSeason = raiderIoToon?.MPlusSeasonScores?.Where(x => x.Season == seasonName).FirstOrDefault();
             if (selectedSeason?.Scores != null)
             {
@@ -217,35 +238,44 @@ namespace RcLibrary.RCLogic
                         runPool.Add(dungeon);
                     }
                 }
-                
+
                 output.RunOptions = new List<List<KeyRun>>();
                 runPool = runPool.OrderBy(x => x.Score).ToList();
                 for (int i = 1; i <= runPool.Count; i++)
                 {
+
                     var targetDungeonScore = (targetRating - (output.Rating - runPool.Take(i).Sum(x => x.Score))) / i;
                     if (targetDungeonScore > maxObtainableDunScore) continue;
-                    var anOptionList = getMinRuns(targetDungeonScore, runPool, i, thisWeeksAffix);
+                    var anOptionList = getMinRuns(targetDungeonScore, runPool, i, thisWeeksAffix, thisweekOnly);
                     if (anOptionList != null)
                     {
-                        output.RunOptions.Add(anOptionList);
+                        var j = 0;
+                        double adjustSum = 0;
+                        for (j = 0; j < anOptionList.Count; j++)
+                        {
+                            adjustSum += (anOptionList[j].NewScore ?? 0) - (anOptionList[j].OldScore ?? 0);
+                            if (adjustSum > (targetRating - output.Rating)) { break; }
+
+                        }
+                        output.RunOptions.Add(anOptionList.Take(j + 1).ToList());
                     }
-                }                               
+                }
             }
 
             return output;
         }
 
-        private List<KeyRun>? getMinRuns(double? targetDungeonScore, List<DungeonWithScores> runPool, int runCount, Affix? thisWeeksAffix)
+        private List<KeyRun>? getMinRuns(double? targetDungeonScore, List<DungeonWithScores> runPool, int runCount, Affix? thisWeeksAffix, bool thisweekOnly)
         {
             if (thisWeeksAffix == null) { throw new Exception("Cant get this weeks affix"); }
             List<KeyRun> output = new List<KeyRun>();
             for (int i = 0; i < runCount; i++)
             {
-                var altScore = (thisWeeksAffix.Id == 9 ? runPool[i].FortScore : runPool[i].TyrScore) ?? 0;
-                var bestScore = ((targetDungeonScore - (altScore * 0.5)) / 1.5) ?? 0;
-
-                if (bestScore < 245)
+                if (thisweekOnly)
                 {
+                    var altScore = (thisWeeksAffix.Id == 9 ? runPool[i].FortScore : runPool[i].TyrScore) ?? 0;
+                    var bestScore = ((targetDungeonScore - (altScore * 0.5)) / 1.5) ?? 0;
+                    if (bestScore >= 245) return null;
                     var dungeonMetric = dungeonMatrix.Where(x => bestScore <= x.Max && (bestScore >= x.Base || bestScore <= x.Base - 5)).FirstOrDefault();
                     if (dungeonMetric != null)
                     {
@@ -276,10 +306,79 @@ namespace RcLibrary.RCLogic
                 }
                 else
                 {
-                    // TDOD - Add functionality to calcualte more than just this week
-                    return null;
+                    var bestScore = (targetDungeonScore ?? 0) / 2;
+                    if (bestScore >= 245) return null;
+
+                    var dungeonMetric = dungeonMatrix.Where(x => bestScore <= x.Max && (bestScore >= x.Base || bestScore <= x.Base - 5)).FirstOrDefault();
+                    if (dungeonMetric != null)
+                    {
+                        double? time = 0;
+                        if (bestScore < dungeonMetric.Base)
+                        {
+                            var timePercent = Math.Min(0.4, (double)((dungeonMetric.Base - bestScore - 5) / 12.5));
+                            time = runPool[i].TimeLimit + (runPool[i].TimeLimit * timePercent);
+                        }
+                        else
+                        {
+                            var timePercent = Math.Min(0.4, (double)((bestScore - dungeonMetric.Base) / 12.5));
+                            time = runPool[i].TimeLimit - (runPool[i].TimeLimit * timePercent);
+                        }
+
+                        var didThisWeek = false;
+                        double newScore = 0;
+                        if ((thisWeeksAffix.Id == 9 ? (runPool[i].TyrScore ?? 0) : (runPool[i].FortScore ?? 0)) < bestScore)
+                        {
+                            didThisWeek = true;
+                            var forScore = thisWeeksAffix.Id == 9 ? (runPool[i].FortScore ?? 0) : bestScore;
+                            var tyrScore = thisWeeksAffix.Id == 10 ? (runPool[i].TyrScore ?? 0) : bestScore;
+                            newScore = Math.Max(forScore, tyrScore) * 1.5 + Math.Min(forScore, tyrScore) * 0.5;
+                            output.Add(new KeyRun
+                            {
+                                DungeonName = runPool[i].Name,
+                                KeyLevel = dungeonMetric.Level,
+                                TimeLimit = runPool[i].TimeLimit,
+                                ClearTimeMs = (int)time,
+                                Affixes = new List<Affix> { thisWeeksAffix },
+                                OldScore = runPool[i].Score,
+                                NewScore = newScore
+                            });
+                        }
+
+                        if ((thisWeeksAffix.Id == 10 ? (runPool[i].TyrScore ?? 0) : (runPool[i].FortScore ?? 0)) < bestScore)
+                        {
+                            double? oldScore = runPool[i].Score;
+                            if (didThisWeek)
+                            {
+                                oldScore = newScore;
+                                newScore = 2 * bestScore;
+                            }
+                            else
+                            {
+
+                                var forScore = thisWeeksAffix.Id == 10 ? (runPool[i].FortScore ?? 0) : bestScore;
+                                var tyrScore = thisWeeksAffix.Id == 9 ? (runPool[i].TyrScore ?? 0) : bestScore;
+
+                                newScore = Math.Max(forScore, tyrScore) * 1.5 + Math.Min(forScore, tyrScore) * 0.5;
+                            }
+                            output.Add(new KeyRun
+                            {
+                                DungeonName = runPool[i].Name,
+                                KeyLevel = dungeonMetric.Level,
+                                TimeLimit = runPool[i].TimeLimit,
+                                ClearTimeMs = (int)time,
+                                Affixes = new List<Affix> { thisWeeksAffix.Id == 9 ? fortAffix : tyrAffix },
+                                OldScore = oldScore,
+                                NewScore = newScore
+                            });
+                        }
+
+
+                    }
+
+
                 }
             }
+
             return output;
         }
     }

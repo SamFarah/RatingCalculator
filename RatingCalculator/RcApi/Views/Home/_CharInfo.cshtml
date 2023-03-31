@@ -51,7 +51,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var run in runOption)
+                        @foreach (var run in runOption.OrderBy(x=> x.Affixes?.First()?.Id == Model.ThisWeekAffixId? 0 : 1))
                         {
                             <tr>
                                 <td>@run.DungeonName</td>

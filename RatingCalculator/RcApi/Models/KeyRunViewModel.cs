@@ -48,7 +48,7 @@ namespace RcApi.Models
         }
 
         public bool OverTime { get { return ClearTimeMs > TimeLimit; } }
-        public string ScoreAdjust { get { return Math.Round((NewScore - OldScore) ?? 0, 0).ToString(); } }
+        public string ScoreAdjust { get { return Math.Round((NewScore - OldScore) ?? 0, 1).ToString(); } }
         public double runTimePercent { get { return (double)(TimeLimit - ClearTimeMs) / (double)TimeLimit; } }
         public int PlussesCount
         {

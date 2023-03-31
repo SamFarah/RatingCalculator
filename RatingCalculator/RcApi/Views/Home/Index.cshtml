@@ -10,7 +10,8 @@
             var name = $('#name').val();
             var season = $('#season').val();
             var targetRating = $('#targetRating').val();
-            
+            var thisweekOnly = $('#thisweekOnly').is(':checked');
+
             $.ajax({
                 url: "/@ViewContext.RouteData.Values["controller"]/ProcessCharacter",
                 type: "get",
@@ -18,17 +19,19 @@
                 data: {
                     region,
                     realm,
-                    name,                    
-                    targetRating
+                    name,
+                    targetRating,
+                    thisweekOnly
                 },
                 beforeSend: function () { $("#CharInfoDiv").append("<div class='loader'/>"); },
-                success: function (result) { $("#CharInfoDiv").html(result);},                               
-                error: function (xhr) {$("#CharInfoDiv").html(`
-                        <div class="alert alert-danger d-flex align-items-center" role="alert">          
-                          <div>
-                             <b>${xhr.statusText} ${xhr.status}</b>: ${xhr.responseText}
-                          </div>
-                        </div>`);
+                success: function (result) { $("#CharInfoDiv").html(result); },
+                error: function (xhr) {
+                    $("#CharInfoDiv").html(`
+                                                <div class="alert alert-danger d-flex align-items-center" role="alert">
+                                                  <div>
+                                                     <b>${xhr.statusText} ${xhr.status}</b>: ${xhr.responseText}
+                                                  </div>
+                                                </div>`);
                 }
             });
 
@@ -45,7 +48,7 @@
             <div class="card-body">
 
                 <div class="mb-3 row">
-                    @Html.Label("region","Region",new {@class = "col-md-4 col-form-label text-end"})
+                    @Html.Label("region","Region",new {@class = "col-md-4 col-form-label "})
 
                     <div class="col-md-8">
                         @Html.DropDownList("region",
@@ -57,23 +60,30 @@
                     </div>
                 </div>
                 <div class="mb-3 row">
-                    @Html.Label("realm","Realm",new {@class = "col-md-4 col-form-label text-end"})
+                    @Html.Label("realm","Realm",new {@class = "col-md-4 col-form-label "})
                     <div class="col-md-8">
                         @Html.TextBox("realm","",new { @class = "form-control" })
                     </div>
                 </div>
                 <div class="mb-3 row">
-                    @Html.Label("name","Name",new {@class = "col-md-4 col-form-label text-end"})
+                    @Html.Label("name","Name",new {@class = "col-md-4 col-form-label "})
                     <div class="col-md-8">
                         @Html.TextBox("name","",new { @class = "form-control" })
                     </div>
-                </div>                
+                </div>
                 <div class="mb-3 row">
-                    @Html.Label("targetRating","Target Rating",new {@class = "col-md-4 col-form-label text-end"})
+                    @Html.Label("targetRating","Target Rating",new {@class = "col-md-4 col-form-label "})
                     <div class="col-md-8">
                         @Html.TextBox("targetRating","",new { @class = "form-control",  type="number"  })
                     </div>
                 </div>
+                <div class="mb-6 row">
+                    <div class="form-check form-switch" style="margin-left:10px">
+                        @Html.CheckBox("thisweekOnly", true, new {@class="form-check-input"})
+                        @Html.Label("thisweekOnly","Get the rating this week",new {@class = "col-md-6 form-check-label"})
+                    </div>
+                </div>
+
                 <div class="mb-3 row">
                     <div class="col-md-12 text-end">
                         <input type="submit" class="btn btn-primary" onclick="ProcessCharacter()" value="Search" />
@@ -88,7 +98,7 @@
             <div class="card-header">
                 Info
             </div>
-            <div class="card-body" id="CharInfoDiv">                
+            <div class="card-body" id="CharInfoDiv">
                 <div class="text-center">
                     Enter info to start
                 </div>

@@ -20,9 +20,9 @@ namespace RcApi.Controllers
 
         public IActionResult Index() { return View(); }
 
-        public async Task<IActionResult> ProcessCharacter(string region, string realm, string name, double targetRating)
+        public async Task<IActionResult> ProcessCharacter(string region, string realm, string name, double targetRating, bool thisweekOnly)
         {
-            var toon = await _ratingCalculator.ProcessCharacter(region, realm, name, targetRating);
+            var toon = await _ratingCalculator.ProcessCharacter(region, realm, name, targetRating, thisweekOnly);
             if (toon == null) { return NotFound("Character not found"); }
             var model = _mapper.Map<WowCharacterViewModel>(toon);
             return PartialView("_CharInfo", model);
