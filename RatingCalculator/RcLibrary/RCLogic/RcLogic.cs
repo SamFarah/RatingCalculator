@@ -7,6 +7,7 @@ using RcLibrary.Helpers;
 using RcLibrary.Models;
 using RcLibrary.Models.Configurations;
 using System.Runtime.InteropServices;
+using static RcLibrary.Models.Enums;
 
 namespace RcLibrary.RCLogic
 {
@@ -176,7 +177,7 @@ namespace RcLibrary.RCLogic
             }
         }
 
-        public async Task<ProcessedCharacter?> ProcessCharacter(string region, string realm, string name, double targetRating, bool thisweekOnly)
+        public async Task<ProcessedCharacter?> ProcessCharacter(string region, string realm, string name, double targetRating, bool thisweekOnly, string? avoidDung)
         {
             var seasonInfo = await GetCachedValue("SeasonInfo", region, () => GetWowCurrentSeason(region));
             if (seasonInfo == null) { return null; }
@@ -235,7 +236,7 @@ namespace RcLibrary.RCLogic
                         {
                             dungeon.TimeLimit = await GetCachedValue($"{dungeon.Slug}TimeLimit", region, () => GetDungoenTimeLimit(region, seasonName, dungeon.Slug ?? ""));
                         }
-                        runPool.Add(dungeon);
+                        if (dungeon.Slug != avoidDung) runPool.Add(dungeon);
                     }
                 }
 
@@ -380,6 +381,12 @@ namespace RcLibrary.RCLogic
             }
 
             return output;
+        }
+
+        public async Task<Season> GetSeason()
+        {
+            var seasonInfo = await GetCachedValue("SeasonInfo", "us", () => GetWowCurrentSeason("us"));
+            return seasonInfo;
         }
     }
 }

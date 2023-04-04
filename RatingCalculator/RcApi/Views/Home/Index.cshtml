@@ -11,6 +11,7 @@
             var season = $('#season').val();
             var targetRating = $('#targetRating').val();
             var thisweekOnly = $('#thisweekOnly').is(':checked');
+            var avoidDung = $('#avoidDung').val();
 
             $.ajax({
                 url: "/@ViewContext.RouteData.Values["controller"]/ProcessCharacter",
@@ -21,17 +22,18 @@
                     realm,
                     name,
                     targetRating,
-                    thisweekOnly
+                    thisweekOnly,
+                    avoidDung
                 },
                 beforeSend: function () { $("#CharInfoDiv").append("<div class='loader'/>"); },
                 success: function (result) { $("#CharInfoDiv").html(result); },
                 error: function (xhr) {
                     $("#CharInfoDiv").html(`
-                                                <div class="alert alert-danger d-flex align-items-center" role="alert">
-                                                  <div>
-                                                     <b>${xhr.statusText} ${xhr.status}</b>: ${xhr.responseText}
-                                                  </div>
-                                                </div>`);
+                                                        <div class="alert alert-danger d-flex align-items-center" role="alert">
+                                                          <div>
+                                                             <b>${xhr.statusText} ${xhr.status}</b>: ${xhr.responseText}
+                                                          </div>
+                                                        </div>`);
                 }
             });
 
@@ -75,6 +77,14 @@
                     @Html.Label("targetRating","Target Rating",new {@class = "col-md-4 col-form-label "})
                     <div class="col-md-8">
                         @Html.TextBox("targetRating","",new { @class = "form-control",  type="number"  })
+                    </div>
+                </div>
+                <div class="mb-6 row">
+                    @Html.Label("avoidDung","Avoid",new {@class = "col-md-4 col-form-label"})
+                    <div class="col-md-8">
+                        @Html.DropDownList("avoidDung",
+                        ViewBag.seasonDugneons,
+                        "Dont avoid any dungeons",new { @class = "form-control" })
                     </div>
                 </div>
                 <div class="mb-6 row">

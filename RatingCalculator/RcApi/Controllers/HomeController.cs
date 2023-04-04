@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using RcApi.Models;
 using RcLibrary.RCLogic;
 using System.Diagnostics;
@@ -18,11 +19,21 @@ namespace RcApi.Controllers
             _mapper = mapper;
         }
 
-        public IActionResult Index() { return View(); }
-
-        public async Task<IActionResult> ProcessCharacter(string region, string realm, string name, double targetRating, bool thisweekOnly)
+        private async Task GetDungeonsView()
         {
-            var toon = await _ratingCalculator.ProcessCharacter(region, realm, name, targetRating, thisweekOnly);
+            var season = await _ratingCalculator.GetSeason();
+            ViewBag.seasonDugneons = season.Dungeons?.Select(x => new SelectListItem { Text = x.Name, Value = x.Slug }).ToList();          
+        }
+
+        public async Task<IActionResult> Index()
+        {
+            await GetDungeonsView();
+            return View();
+        }
+
+        public async Task<IActionResult> ProcessCharacter(string region, string realm, string name, double targetRating, bool thisweekOnly, string? avoidDung)
+        {
+            var toon = await _ratingCalculator.ProcessCharacter(region, realm, name, targetRating, thisweekOnly, avoidDung);
             if (toon == null) { return NotFound("Character not found"); }
             var model = _mapper.Map<WowCharacterViewModel>(toon);
             return PartialView("_CharInfo", model);
