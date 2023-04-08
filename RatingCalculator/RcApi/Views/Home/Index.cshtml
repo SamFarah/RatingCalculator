@@ -1,5 +1,5 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Plan it";
 }
 
 @section scripts{
@@ -79,7 +79,7 @@
                         @Html.TextBox("targetRating","",new { @class = "form-control",  type="number"  })
                     </div>
                 </div>
-                <div class="mb-6 row">
+                <div class="mb-3 row">
                     @Html.Label("avoidDung","Avoid",new {@class = "col-md-4 col-form-label"})
                     <div class="col-md-8">
                         @Html.DropDownList("avoidDung",
@@ -87,7 +87,7 @@
                         "Dont avoid any dungeons",new { @class = "form-control" })
                     </div>
                 </div>
-                <div class="mb-6 row">
+                <div class="mb-3 row">
                     <div class="form-check form-switch" style="margin-left:10px">
                         @Html.CheckBox("thisweekOnly", true, new {@class="form-check-input"})
                         @Html.Label("thisweekOnly","Get the rating this week",new {@class = "col-md-6 form-check-label"})

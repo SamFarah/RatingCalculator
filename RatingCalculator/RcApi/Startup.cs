@@ -43,6 +43,7 @@ namespace RcApi
             services.AddSingleton(ConfigureAutoMapper());
             services.AddSingleton<IApiHelper, ApiHelper>();
             services.AddSingleton<IRcLogic, RcLogic>();
+            services.AddTransient<IAppVersionService, AppVersionService>();
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
