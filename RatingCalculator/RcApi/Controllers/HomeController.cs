@@ -22,7 +22,7 @@ namespace RcApi.Controllers
         private async Task GetDungeonsView()
         {
             var season = await _ratingCalculator.GetSeason();
-            ViewBag.seasonDugneons = season.Dungeons?.Select(x => new SelectListItem { Text = x.Name, Value = x.Slug }).ToList();          
+            ViewBag.seasonDugneons = season.Dungeons?.Select(x => new SelectListItem { Text = x.Name, Value = x.Slug }).ToList();
         }
 
         public async Task<IActionResult> Index()

@@ -11,6 +11,6 @@ namespace RcLibrary.Models
         public List<KeyRun>? BestMythicRuns { get; set; }
 
         [JsonProperty(PropertyName = "mythic_plus_alternate_runs")]
-        public List<KeyRun>? AlternateMythicRuns { get; set; }        
+        public List<KeyRun>? AlternateMythicRuns { get; set; }
     }
 }

@@ -1,9 +1,4 @@
 ﻿using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace RcLibrary.Models
 {
@@ -23,9 +18,9 @@ namespace RcLibrary.Models
     public class RunDetails
     {
         [JsonProperty(PropertyName = "dungeon")]
-        public DungeonDetails? Dungeon { get; set; }        
+        public DungeonDetails? Dungeon { get; set; }
     }
-  
+
     public class DungeonDetails
     {
         [JsonProperty(PropertyName = "id")]
@@ -35,14 +30,14 @@ namespace RcLibrary.Models
         public string? Name { get; set; }
 
 
-        [JsonProperty(PropertyName = "short_name")] 
+        [JsonProperty(PropertyName = "short_name")]
         public string? ShortName { get; set; }
 
-        [JsonProperty(PropertyName = "slug")] 
+        [JsonProperty(PropertyName = "slug")]
         public string? Slug { get; set; }
 
-        [JsonProperty(PropertyName = "keystone_timer_ms")] 
-        public int TimeLimitMS{ get; set; }
-        
+        [JsonProperty(PropertyName = "keystone_timer_ms")]
+        public int TimeLimitMS { get; set; }
+
     }
 }
