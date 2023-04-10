@@ -35,7 +35,7 @@ namespace MythicPlanner.Controllers
         }
 
         public async Task<IActionResult> ProcessCharacter(string region, string realm, string name, double targetRating, bool thisweekOnly, string? avoidDung)
-        {
+        {            
             var toon = await _ratingCalculator.ProcessCharacter(region, realm, name, targetRating, thisweekOnly, avoidDung);
             if (toon == null) { return NotFound("Character not found"); }
             var model = _mapper.Map<WowCharacterViewModel>(toon);
