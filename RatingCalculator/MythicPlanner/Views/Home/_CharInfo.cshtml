@@ -1,0 +1,128 @@
+﻿@model WowCharacterViewModel
+
+
+
+
+<div class="row">
+    <div style="width:110px">
+        <img src="@Model.ThumbnailUrl" alt="@Model.Name" width="100" />
+    </div>
+    <div class="col-md-9">
+        <div class="row">
+            <span>
+                <span class="mb-0" @($"style=color:{Model.FactionColour};font-size:22px;font-weight:bold")>@Model.Name</span> &nbsp;
+                <small><a class="link-secondary" href="@Model.ProfileUrl" target="_blank"><i class="fa-solid fa-arrow-up-right-from-square"></i></a></small>
+            </span>
+        </div>
+        <div class="row">
+
+            @if (!string.IsNullOrEmpty(Model.Guild))
+            {
+                <span>&lt;@Model.Guild&gt;</span>
+            }
+        </div>
+        <div class="row">
+            <span>(@Model.Region?.ToUpper()) @Model.Realm</span>
+        </div>
+        <div class="row">
+            <span>
+                <span style="color:@(Model.FactionColour)">@Model.Race</span> <span style="color:@(Model.ClassColour)">@Model.ActiveSpec @Model.Class</span>
+            </span>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col">
+        <small class="text-muted">Last update @Model.LastCrawledAt</small>
+    </div>
+</div>
+<div class="row">
+    <div class="col m-2">
+
+        <span>Mythic+ Rating: <span class="RatingBox" @($"style=color:{Model.Rating?.Colour}")>@Math.Round(Model.Rating?.Value??0,1)</span> <i class="fa-solid fa-arrow-right"></i> <span class="RatingBox" @($"style=color:{Model.TargetRating?.Colour}")>@Math.Round(Model.TargetRating?.Value??0,1)</span></span>
+
+    </div>
+</div>
+<div class="row">
+    <div class="col">
+
+
+
+
+
+        @if (Model.Rating?.Value >= Model.TargetRating?.Value)
+        {
+            <div class="alert alert-success">You already have that rating</div>
+        }
+        else
+        {
+            if ((Model.RunOptions?.Count ?? 0) == 0)
+            {
+                <span>WIP you cannot get to this target this week alone.. TODO: show min can be done this week to catch up</span>
+            }
+            else
+            {
+                <h5>Optios: </h5>
+                var optionCounter = 0;
+                @foreach (var runOption in Model.RunOptions)
+                {
+                    <div class="card mb-2">
+                        <div class="card-header">
+                            Option @(++optionCounter) @(optionCounter == 1 ? "(Fastest)" : optionCounter == Model.RunOptions?.Count ? "(Easiest)" : "")
+
+                            <small class="text-muted">Finish the following @(@runOption.Count == 1 ? "dungoen" : $"{@runOption.Count} dungeons") within the suggested timers (or faster) </small>
+                        </div>
+                        <div class="card-body">
+
+
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Dungeon Name</th>
+                                        <th>Level</th>
+                                        <th>Affix</th>
+                                        <th>Time Limit</th>
+                                        <th>Complete In</th>
+                                        <th>Rating Adjust</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var run in runOption.OrderBy(x => x.Affixes?.First()?.Id == Model.ThisWeekAffixId ? 0 : 1))
+                                    {
+                                        <tr>
+                                            <td>@run.DungeonName</td>
+                                            <td style="white-space:nowrap">
+                                                @run.KeyLevel @for (var i = 0; i < run.PlussesCount; i++)
+                                                {
+                                                    @Html.Raw("+")
+                                                }
+                                            </td>
+                                            <td>
+                                                <table>
+                                                    <tr>
+                                                        @foreach (var affix in run.Affixes)
+                                                        {
+                                                            <td>
+                                                                <img src="@affix.IconUrl" alt="@affix.Name" title="@affix.Name" width="32" />
+                                                            </td>
+                                                        }
+                                                    </tr>
+                                                </table>
+                                            </td>
+                                            <td>@run.TimeLimitString</td>
+                                            <td style="white-space:nowrap">@run.ClearTimeString<br /><span class="@(run.OverTime?"text-danger":"text-success")"> @(run.OverTime ? "over" : "under") by @run.OverUnderTime  </span></td>
+                                            <td>+@run.ScoreAdjust</td>
+                                        </tr>
+                                    }
+                                </tbody>
+
+                            </table>
+                        </div>
+                    </div>
+
+                }
+            }
+
+        }
+    </div>
+</div>

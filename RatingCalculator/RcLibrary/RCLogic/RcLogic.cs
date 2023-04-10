@@ -124,6 +124,22 @@ namespace RcLibrary.RCLogic
             }
         }
 
+        private async Task<List<RatingColour>?> GetRatingColours(string seasonName)
+        {
+            var qsParams = new Dictionary<string, string>() { { "season", seasonName } };
+            var endpoint = new Uri(QueryHelpers.AddQueryString("mythic-plus/score-tiers", qsParams), UriKind.Relative);
+            try
+            {
+                var ratingColours = await _raiderIoApi.GetAsync<List<RatingColour>>(endpoint.ToString());
+                return ratingColours;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting static data from raider.io:{errorMessage}", ex.Message);
+                return null;
+            }
+        }
+
         private async Task<int> GetDungoenTimeLimit(string region, string seasonName, string dungeonName)
         {
             var qsParams = new Dictionary<string, string>() { { "region", region }, { "season", seasonName }, { "dungeon", dungeonName }, };
@@ -183,6 +199,8 @@ namespace RcLibrary.RCLogic
 
             var thisWeeksAffix = await GetCachedValue("WeeksAffix", region, () => GetCurrentBaseAffix(region));
             var raiderIoToon = await GetCharacter(region, realm, name, seasonName);
+            var ratingColours = await GetCachedValue("RatingColours", region, () => GetRatingColours(seasonName));
+
             if (raiderIoToon == null) { return null; }
             var allBestPlayerRuns = new List<KeyRun>();
             int FortAffixID = 10;
@@ -192,15 +210,17 @@ namespace RcLibrary.RCLogic
             if (raiderIoToon?.AlternateMythicRuns != null) allBestPlayerRuns.AddRange(raiderIoToon.AlternateMythicRuns);
 
             ProcessedCharacter output = _mapper.Map<ProcessedCharacter>(raiderIoToon);
-            output.TargetRating = targetRating;
+            output.TargetRating.Value = targetRating;
+            output.TargetRating.Colour  = ratingColours?.Where(x => targetRating >= x.Score).FirstOrDefault()?.RgbHex;
             output.ThisWeekAffixId = thisWeeksAffix?.Id ?? 0;
             var selectedSeason = raiderIoToon?.MPlusSeasonScores?.Where(x => x.Season == seasonName).FirstOrDefault();
             if (selectedSeason?.Scores != null)
             {
-                output.Rating = selectedSeason.Scores["all"];
+                output.Rating.Value = selectedSeason.Scores["all"];
+                output.Rating.Colour = ratingColours?.Where(x => output.Rating.Value >= x.Score).FirstOrDefault()?.RgbHex;
             }
 
-            if (output.Rating >= targetRating) { return output; }
+            if (output.Rating.Value >= targetRating) { return output; }
 
             if (seasonInfo?.Dungeons != null)
             {
@@ -243,7 +263,7 @@ namespace RcLibrary.RCLogic
                 for (int i = 1; i <= runPool.Count; i++)
                 {
 
-                    var targetDungeonScore = (targetRating - (output.Rating - runPool.Take(i).Sum(x => x.Score))) / i;
+                    var targetDungeonScore = (targetRating - (output.Rating.Value - runPool.Take(i).Sum(x => x.Score))) / i;
                     if (targetDungeonScore > maxObtainableDunScore) continue;
                     var anOptionList = getMinRuns(targetDungeonScore, runPool, i, thisWeeksAffix, thisweekOnly);
                     if (anOptionList != null)
@@ -253,7 +273,7 @@ namespace RcLibrary.RCLogic
                         for (j = 0; j < anOptionList.Count; j++)
                         {
                             adjustSum += (anOptionList[j].NewScore ?? 0) - (anOptionList[j].OldScore ?? 0);
-                            if (adjustSum > (targetRating - output.Rating)) { break; }
+                            if (adjustSum > (targetRating - output.Rating.Value)) { break; }
 
                         }
                         output.RunOptions.Add(anOptionList.Take(j + 1).ToList());

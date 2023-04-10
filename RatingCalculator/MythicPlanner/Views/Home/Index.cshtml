@@ -1,8 +1,107 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+﻿@section scripts{
+    <script>
+        function ProcessCharacter() {
+            var region = $('#region').val();
+            var realm = $('#realm').val();
+            var name = $('#name').val();
+            var season = $('#season').val();
+            var targetRating = $('#targetRating').val();
+            var thisweekOnly = $('#thisweekOnly').is(':checked');
+            var avoidDung = $('#avoidDung').val();
+
+            $.ajax({
+                url: "/@ViewContext.RouteData.Values["controller"]/ProcessCharacter",
+                type: "get",
+                dataType: "html",
+                data: {
+                    region,
+                    realm,
+                    name,
+                    targetRating,
+                    thisweekOnly,
+                    avoidDung
+                },
+                beforeSend: function () { $("#CharInfoDiv").append("<div class='loader'/>"); },
+                success: function (result) { $("#CharInfoDiv").html(result); },
+                error: function (xhr) {
+                    $("#CharInfoDiv").html(`
+                                <div class="alert alert-danger d-flex align-items-center" role="alert">
+                                    <div>
+                                        <b>${xhr.statusText} ${xhr.status}</b>: ${xhr.responseText}
+                                    </div>
+                                </div>`);
+                }
+            });
+
+        }
+    </script>
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="row">
+    <div class="col mt-5" style="min-width:350px;max-width:450px">
+        <div class="container px-4 sticky-top">
+            <div class="row">
+                <div class="col">
+                    <h3>Mythic Keystone Planner</h3>
+                    Find out what mythic plus keys you should run to achieve a target rating!
+                    <hr />
+                </div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-4">
+                    @Html.Label("region","Region", new {@class="mb-1 form-label"})
+
+                    @Html.DropDownList("region",
+                    Enum.GetNames(typeof(Enums.Regions)).ToList().Select(x=> new SelectListItem {
+                    Text = x,
+                    Value = x.ToLower(),
+                    Selected = x=="US"}),
+                    null,new { @class = "form-select", data_bs_theme="light" })
+                </div>
+                <div class="col-8">
+                    @Html.Label("realm","Realm",new {@class = "mb-1 form-label "})
+                    @Html.TextBox("realm","",new { @class = "form-control", data_bs_theme="light" })
+                </div>
+            </div>
+            <div class="row mb-2">
+                <div class="col">
+                    @Html.Label("name","Character Name",new {@class = "mb-1 form-label "})
+                    @Html.TextBox("name","",new { @class = "form-control", data_bs_theme="light" })
+                </div>
+            </div>
+            <div class="row mb-2">
+                <div class="col">
+                    @Html.Label("targetRating","Target Rating",new {@class = "mb-1 form-label "})
+                    @Html.TextBox("targetRating","",new { @class = "form-control", data_bs_theme="light",  type="number"  })
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col">
+                    @Html.Label("avoidDung","Avoid a Dungeon",new {@class = "mb-1 form-label"})
+                    @Html.DropDownList("avoidDung",
+                    ViewBag.seasonDungeons,
+                    "Dont avoid any dungeons",new { @class = "form-select", data_bs_theme="light" })
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col">
+                    <div class="form-check form-switch">
+                        @Html.CheckBox("thisweekOnly", true, new {@class="form-check-input"})
+                        @Html.Label("thisweekOnly","Get the rating this week",new {@class = "form-check-label"})
+                    </div>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="d-grid gap-2">
+                    <input type="submit" class="btn btn-primary" onclick="ProcessCharacter()" value="Submit" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col mt-5" id="CharInfoDiv">
+        <div class="text-center">
+            Enter info to start
+        </div>
+    </div>
 </div>

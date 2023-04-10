@@ -2,8 +2,8 @@
 {
     public class ProcessedCharacter : WowCharacter
     {
-        public double? Rating { get; set; }
-        public double? TargetRating { get; set; }
+        public Rating Rating { get; set; } = new Rating();
+        public Rating TargetRating { get; set; } = new Rating();
         public List<List<KeyRun>>? RunOptions { get; set; }
         public int ThisWeekAffixId { get; set; }
 

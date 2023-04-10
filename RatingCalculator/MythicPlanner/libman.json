@@ -3,10 +3,6 @@
   "defaultProvider": "cdnjs",
   "libraries": [
     {
-      "library": "bootstrap@5.2.3",
-      "destination": "wwwroot/lib/bootstrap/"
-    },
-    {
       "library": "bootstrap@5.3.0-alpha3",
       "destination": "wwwroot/lib/bootstrap/"
     }
