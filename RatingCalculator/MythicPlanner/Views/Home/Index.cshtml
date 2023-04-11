@@ -8,6 +8,7 @@
             var targetRating = $('#targetRating').val();
             var thisweekOnly = $('#thisweekOnly').is(':checked');
             var avoidDung = $('#avoidDung').val();
+            var maxKeyLevel = $('#maxKeyLevel').val();
 
             $.ajax({
                 url: "/@ViewContext.RouteData.Values["controller"]/ProcessCharacter",
@@ -19,7 +20,8 @@
                     name,
                     targetRating,
                     thisweekOnly,
-                    avoidDung
+                    avoidDung,
+                    maxKeyLevel
                 },
                 beforeSend: function () { $("#CharInfoDiv").append("<div class='loader'/>"); },
                 success: function (result) { $("#CharInfoDiv").html(result); },
@@ -50,7 +52,6 @@
             <div class="row mb-2">
                 <div class="col-4">
                     @Html.Label("region","Region", new {@class="mb-1 form-label"})
-
                     @Html.DropDownList("region",
                     Enum.GetNames(typeof(Enums.Regions)).ToList().Select(x=> new SelectListItem {
                     Text = x,
@@ -76,11 +77,15 @@
                 </div>
             </div>
             <div class="row mb-3">
-                <div class="col">
+                <div class="col-8">
                     @Html.Label("avoidDung","Avoid a Dungeon",new {@class = "mb-1 form-label"})
                     @Html.DropDownList("avoidDung",
                     ViewBag.seasonDungeons,
                     "Dont avoid any dungeons",new { @class = "form-select", data_bs_theme="light" })
+                </div>
+                <div class="col-4">
+                    @Html.Label("maxKeyLevel","Max Key Level",new {@class = "mb-1 form-label "})
+                    @Html.TextBox("maxKeyLevel","30",new { @class = "form-control", data_bs_theme="light",  type="number"  })
                 </div>
             </div>
             <div class="row mb-3">
@@ -89,7 +94,7 @@
                         @Html.CheckBox("thisweekOnly", true, new {@class="form-check-input"})
                         @Html.Label("thisweekOnly","Get the rating this week",new {@class = "form-check-label"})
                     </div>
-                </div>
+                </div>                
             </div>
             <div class="row mb-3">
                 <div class="d-grid gap-2">

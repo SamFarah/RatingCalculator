@@ -191,7 +191,7 @@ namespace RcLibrary.RCLogic
             }
         }
 
-        public async Task<ProcessedCharacter?> ProcessCharacter(string region, string realm, string name, double targetRating, bool thisweekOnly, string? avoidDung)
+        public async Task<ProcessedCharacter?> ProcessCharacter(string region, string realm, string name, double targetRating, bool thisweekOnly, string? avoidDung, int? maxKeyLevel)
         {
             var seasonInfo = await GetCachedValue("SeasonInfo", region, () => GetWowCurrentSeason(region));
             if (seasonInfo == null) { return null; }
@@ -265,7 +265,7 @@ namespace RcLibrary.RCLogic
 
                     var targetDungeonScore = (targetRating - (output.Rating.Value - runPool.Take(i).Sum(x => x.Score))) / i;
                     if (targetDungeonScore > maxObtainableDunScore) continue;
-                    var anOptionList = getMinRuns(targetDungeonScore, runPool, i, thisWeeksAffix, thisweekOnly);
+                    var anOptionList = getMinRuns(targetDungeonScore, runPool, i, thisWeeksAffix, thisweekOnly, maxKeyLevel??30);
                     if (anOptionList != null)
                     {
                         var j = 0;
@@ -284,7 +284,7 @@ namespace RcLibrary.RCLogic
             return output;
         }
 
-        private List<KeyRun>? getMinRuns(double? targetDungeonScore, List<DungeonWithScores> runPool, int runCount, Affix? thisWeeksAffix, bool thisweekOnly)
+        private List<KeyRun>? getMinRuns(double? targetDungeonScore, List<DungeonWithScores> runPool, int runCount, Affix? thisWeeksAffix, bool thisweekOnly, int maxKeyLevel)
         {
             if (thisWeeksAffix == null) { throw new Exception("Cant get this weeks affix"); }
             List<KeyRun> output = new List<KeyRun>();
@@ -295,9 +295,10 @@ namespace RcLibrary.RCLogic
                     var altScore = (thisWeeksAffix.Id == 9 ? runPool[i].FortScore : runPool[i].TyrScore) ?? 0;
                     var bestScore = ((targetDungeonScore - (altScore * 0.5)) / 1.5) ?? 0;
                     if (bestScore >= 245) return null;
-                    var dungeonMetric = dungeonMatrix.Where(x => bestScore <= x.Max && (bestScore >= x.Base || bestScore <= x.Base - 5)).FirstOrDefault();
+                    var dungeonMetric = dungeonMatrix.Where(x =>  bestScore <= x.Max && (bestScore >= x.Base || bestScore <= x.Base - 5)).FirstOrDefault();
                     if (dungeonMetric != null)
                     {
+                        if (dungeonMetric.Level > maxKeyLevel) return null;
                         double? time = 0;
 
 
@@ -331,6 +332,7 @@ namespace RcLibrary.RCLogic
                     var dungeonMetric = dungeonMatrix.Where(x => bestScore <= x.Max && (bestScore >= x.Base || bestScore <= x.Base - 5)).FirstOrDefault();
                     if (dungeonMetric != null)
                     {
+                        if (dungeonMetric.Level > maxKeyLevel) return null;
                         double? time = 0;
                         if (bestScore < dungeonMetric.Base)
                         {

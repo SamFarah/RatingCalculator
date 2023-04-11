@@ -34,9 +34,9 @@ namespace MythicPlanner.Controllers
             return View();
         }
 
-        public async Task<IActionResult> ProcessCharacter(string region, string realm, string name, double targetRating, bool thisweekOnly, string? avoidDung)
+        public async Task<IActionResult> ProcessCharacter(string region, string realm, string name, double targetRating, bool thisweekOnly, string? avoidDung, int? maxKeyLevel)
         {            
-            var toon = await _ratingCalculator.ProcessCharacter(region, realm, name, targetRating, thisweekOnly, avoidDung);
+            var toon = await _ratingCalculator.ProcessCharacter(region, realm, name, targetRating, thisweekOnly, avoidDung, maxKeyLevel);
             if (toon == null) { return NotFound("Character not found"); }
             var model = _mapper.Map<WowCharacterViewModel>(toon);
           
