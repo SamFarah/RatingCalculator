@@ -51,13 +51,13 @@
 </div>
 <div class="row">
     <div class="col">
-
+        
         @if (Model.Rating?.Value >= Model.TargetRating?.Value)
         {
             <div class="alert alert-success">You already have that rating</div>
         }
         else
-        {
+        {            
             if ((Model.RunOptions?.Count ?? 0) == 0)
             {
                 <div class="alert alert-warning">You cannot get to this target rating with the selected parameters, consider changing some of the options or lowering your target rating.</div>
@@ -100,19 +100,22 @@
                                                 }
                                             </td>
                                             <td>
-                                                <table>
-                                                    <tr>
-                                                        @foreach (var affix in run.Affixes)
-                                                        {
-                                                            <td>
-                                                                <img src="@affix.IconUrl" alt="@affix.Name" title="@affix.Name" width="32" />
-                                                            </td>
-                                                        }
-                                                    </tr>
-                                                </table>
+                                                @if (run.Affixes != null)
+                                                {
+                                                    <table>
+                                                        <tr>
+                                                            @foreach (var affix in run.Affixes)
+                                                            {
+                                                                <td>
+                                                                    <img src="@affix.IconUrl" alt="@affix.Name" title="@affix.Name" width="32" />
+                                                                </td>
+                                                            }
+                                                        </tr>
+                                                    </table>
+                                                }
                                             </td>
                                             <td>@run.TimeLimitString</td>
-                                            <td style="white-space:nowrap">@run.ClearTimeString<br /><span class="@(run.OverTime?"text-danger":"text-success")"> @(run.OverTime ? "over" : "under") by @run.OverUnderTime  </span></td>
+                                            <td style="white-space:nowrap">@run.ClearTimeString<br />@Html.Raw(run.OverUnderString)</td>
                                             <td>+@run.ScoreAdjust</td>
                                         </tr>
                                     }

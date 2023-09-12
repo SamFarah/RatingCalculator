@@ -1,12 +1,9 @@
 ﻿using Newtonsoft.Json;
 
-namespace RcLibrary.Models
+namespace RcLibrary.Models;
+
+public class WowStaticData
 {
-    public class WowStaticData
-    {
-        [JsonProperty(PropertyName = "seasons")]
-        public List<Season>? Seasons { get; set; }
-    }
-
-
+    [JsonProperty(PropertyName = "seasons")]
+    public List<Season>? Seasons { get; set; }
 }

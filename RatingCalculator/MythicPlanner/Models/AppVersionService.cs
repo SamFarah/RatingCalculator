@@ -1,16 +1,15 @@
 ﻿using System.Reflection;
 
-namespace MythicPlanner.Models
+namespace MythicPlanner.Models;
+
+public class AppVersionService : IAppVersionService
 {
-    public class AppVersionService : IAppVersionService
+    public string Version
     {
-        public string Version
+        get
         {
-            get
-            {
-                Version version = Assembly.GetExecutingAssembly().GetName().Version;
-                return $"v{version}";
-            }
+            Version version = Assembly.GetExecutingAssembly().GetName().Version;
+            return $"v{version}";
         }
     }
 }

@@ -1,9 +1,8 @@
-﻿namespace RcLibrary.Models.Configurations
+﻿namespace RcLibrary.Models.Configurations;
+
+public class Settings
 {
-    public class Settings
-    {
-        public const string MainSectionName = "Settings";
-        public string? RaiderIOAPI { get; set; }
-        public int ExpansionId { get; set; }
-    }
+    public const string MainSectionName = "Settings";
+    public string? RaiderIOAPI { get; set; }
+    public int ExpansionId { get; set; }
 }

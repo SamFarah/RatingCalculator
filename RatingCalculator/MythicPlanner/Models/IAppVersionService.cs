@@ -1,7 +1,6 @@
-﻿namespace MythicPlanner.Models
+﻿namespace MythicPlanner.Models;
+
+public interface IAppVersionService
 {
-    public interface IAppVersionService
-    {
-        string Version { get; }
-    }
+    string Version { get; }
 }

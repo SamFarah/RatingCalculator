@@ -1,7 +1,6 @@
-﻿namespace RcLibrary.Models
+﻿namespace RcLibrary.Models;
+
+public static class Enums
 {
-    public static class Enums
-    {
-        public enum Regions { US, EU, TW, KR, CN }
-    }
+    public enum Regions { US, EU, TW, KR, CN }
 }
