@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using MythicPlanner.Models;
+using RcLibrary.Models;
 using RcLibrary.RCLogic;
 using System.Diagnostics;
 
@@ -31,16 +32,28 @@ public class HomeController : Controller
     public async Task<IActionResult> Index()
     {
         await GetDungeonsView();
+        ViewBag.dungeonMatrix = _ratingCalculator.GetDungeonMetrics();
         return View();
     }
 
-    public async Task<IActionResult> ProcessCharacter(string region, string realm, string name, double targetRating, bool thisweekOnly, string? avoidDung, int? maxKeyLevel)
+    public async Task<IActionResult> ProcessCharacter(SearchToonViewModel m)
     {
-        var toon = await _ratingCalculator.ProcessCharacter(region, realm, name, targetRating, thisweekOnly, avoidDung, maxKeyLevel);
-        if (toon == null) { return NotFound("Character not found"); }
-        var model = _mapper.Map<WowCharacterViewModel>(toon);
+        if (ModelState.IsValid)
+        {
+            var toon = await _ratingCalculator.ProcessCharacter((m.Region ?? Enums.Regions.US).ToString().ToLower(),
+                                                                m.Realm,
+                                                                m.CharacterName,
+                                                                m.TargetRating ?? 0,
+                                                                m.ThisWeekOnly,
+                                                                m.AvoidDungeon,
+                                                                m.MaxKeyLevel);
 
-        return PartialView("_CharInfo", model);
+            if (toon == null) { return NotFound("Character not found"); }
+            var resultModel = _mapper.Map<WowCharacterViewModel>(toon);
+            return PartialView("_CharInfo", resultModel);
+        }
+
+        return BadRequest($"<ul class='error-list'>{string.Join(string.Empty, ModelState.Values.SelectMany(v => v.Errors).Select(x => $"<li>{x.ErrorMessage}</li>"))}</ul>");
     }
 
 

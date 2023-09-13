@@ -8,7 +8,7 @@ public class AppVersionService : IAppVersionService
     {
         get
         {
-            Version version = Assembly.GetExecutingAssembly().GetName().Version;
+            Version? version = Assembly.GetExecutingAssembly()?.GetName()?.Version;
             return $"v{version}";
         }
     }

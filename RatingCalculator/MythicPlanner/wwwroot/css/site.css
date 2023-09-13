@@ -34,19 +34,8 @@ body {
 }
 
 .loader {
-    position: absolute;
-    top: 0px;
-    right: 0px;
-    width: 100%;
-    height: 100%;
-    background-color: #eceaea;
-    background-size: 50px;
-    background-repeat: no-repeat;
-    background-image: url('../images/ajax-loader.gif');
-    background-position: top;
-    z-index: 10000000;
-    opacity: 0.6;
-    filter: alpha(opacity=60);
+    opacity: 0.3;
+    filter: alpha(opacity=30);
 }
 
 .AdvancedOptions::after {
@@ -56,4 +45,46 @@ body {
     margin-left: 27%;
     background-color: var(--bs-body-bg);
     padding: 5px
+}
+
+.sticky-header2 {
+}
+
+.sticky-header thead {
+    position: sticky;
+    top: -1px;
+}
+
+.sticky-header th {
+    position: sticky;
+    top: 0;
+}
+
+.sticky-header td {
+}
+
+
+.code {
+    text-align: center;
+    color: #7fb2e9;
+    word-wrap: break-word;
+    padding: 1rem;
+}
+
+.eq:after {
+    content: attr(data-eqNo);
+    color: var(--bs-body-color);
+    font-size: 0.9rem;
+    border: solid 1px;
+    border-radius: 10%;
+    padding: 5px;
+    padding-bottom: 5px;
+    padding-top: 2px;    
+    margin-left: 50px;
+    background-color: #353535;
+}
+
+.error-list {
+    margin-top: 0;
+    margin-bottom: 0;
 }

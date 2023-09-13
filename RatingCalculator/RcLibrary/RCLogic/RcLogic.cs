@@ -452,4 +452,7 @@ public class RcLogic : IRcLogic
         var seasonInfo = await GetCachedValue("SeasonInfo", "us", () => GetWowCurrentSeason("us"));
         return seasonInfo;
     }
+
+    public List<DungeonMetrics> GetDungeonMetrics() => _dungeonMatrix;
+    
 }
