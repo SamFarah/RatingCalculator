@@ -32,10 +32,10 @@
                     success: function (result) { $("#CharInfoDiv").html(result); },
                     error: function (xhr) {
                         $("#CharInfoDiv").html(`<div class="alert alert-danger " role="alert">
-                                            <div>
-                                                ${xhr.responseText}
-                                            </div>
-                                        </div>`);
+                                                    <div>
+                                                        ${xhr.responseText}
+                                                    </div>
+                                                </div>`);
                     }
                 });
 
@@ -122,6 +122,22 @@
 
                         </button>
 
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col">
+                        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7855962973375225"
+                                crossorigin="anonymous"></script>
+                        <!-- Ad Unit -->
+                        <ins class="adsbygoogle"
+                             style="display:block"
+                             data-ad-client="ca-pub-7855962973375225"
+                             data-ad-slot="4449400025"
+                             data-ad-format="auto"
+                             data-full-width-responsive="true"></ins>
+                        <script>
+                            (adsbygoogle = window.adsbygoogle || []).push({});
+                        </script>
                     </div>
                 </div>
             </div>
@@ -240,12 +256,12 @@
                 </p>
 
                 <p>
-                    For calculating overtime runs, it's a very similar process, except, the moment the key is over time, 5 ratings is taken away from the base, and then the rest is taken away 
+                    For calculating overtime runs, it's a very similar process, except, the moment the key is over time, 5 ratings is taken away from the base, and then the rest is taken away
                     depend on the time percentage: <br />
                     <div class="code eq" data-eqNo="Eq. 3">
                         <var>Rating</var> = <var>Base<sub>level</sub> + (<var>P<sub>T</sub></var> * 12.5) - 5 </var>
                     </div><br />
-                    Notes: 
+                    Notes:
                     <ol>
                         <li>
                             when calculating <var>P<sub>T</sub></var> here, it's the same exact formula above (Eq. 1), but since the run time is bigger than the time limit then the percentage would be negative, therefore subtracting from the base score
@@ -274,14 +290,14 @@
 
                 <p>
                     To continue on the above example, lets assume that the above run was on Tyrannical week, and it was your best run. And also, let us say that your best run on Fortified (for the same dungeon)
-                    is a level 16, finished within 35 mins and 15 seconds ( = 2115 seconds in total), note that this is over the time limit. Then the calculations go as follows:<br/>
+                    is a level 16, finished within 35 mins and 15 seconds ( = 2115 seconds in total), note that this is over the time limit. Then the calculations go as follows:<br />
                     First we calculate the time percentage:<br />
 
                     <div class="code">
                         <var>P<sub>T</sub></var> = (1980 - 2115) / 1980 = -6.82%
                     </div>
                     <br />
-                    Therefore, the rating should be calculated as:<br/>
+                    Therefore, the rating should be calculated as:<br />
                     <div class="code">
                         <var>Rating<sub>Fort</sub></var> = 142 + (-0.0682 * 12.5) - 5  = 136.15 ≈ 136
                     </div><br />
@@ -292,17 +308,17 @@
                     <div class="code">
                         <var>Dungeon Rating</var> = (Max[151 , 136] * 1.5) + (Min[151 , 136] * 0.5) <br />
                         = (151 * 1.5) + (136 * 0.5) = 294.5
-                    </div><br />  
-                    
-                    And that would be your total rating for this particular dungeon. we calculate the rating for each of the different dungeon, and then add up all the ratings 
+                    </div><br />
+
+                    And that would be your total rating for this particular dungeon. we calculate the rating for each of the different dungeon, and then add up all the ratings
                     to get the total Mythic+ rating.
-                </p>               
+                </p>
 
                 <p>Note that the best rating for each affix (Tyrannical and Fortified) for each dungeon is the one used for the final mythic rating.</p>
-                
+
                 <p>
-                    Using the above formulas, this tool applies them backwards. when you set a target rating. the tool fetches all your runs from raider.io and calculates what is the 
-                    minimum key level and run time required to achieve that over all rating. by giving you options on how many runs are required to achieve the rating<<br />
+                    Using the above formulas, this tool applies them backwards. when you set a target rating. the tool fetches all your runs from raider.io and calculates what is the
+                    minimum key level and run time required to achieve that over all rating. by giving you options on how many runs are required to achieve the rating<br />
                     For more details on the entire code, you can find it on github: <a href="https://github.com/SamFarah/RatingCalculator" target="_blank">https://github.com/SamFarah/RatingCalculator</a>
                 </p>
             </div>
