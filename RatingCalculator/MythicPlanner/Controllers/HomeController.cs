@@ -23,10 +23,12 @@ public class HomeController : Controller
         _logger = logger;
     }
 
+
+
     private async Task GetDungeonsView()
     {
         var season = await _ratingCalculator.GetSeason();
-        ViewBag.seasonDungeons = season?.Dungeons?.Select(x => new SelectListItem { Text = x.Name, Value = x.Slug }).ToList();
+        ViewBag.seasonDungeons = season?.Dungeons?.Select(x => new { Text = x.Name, Value = x.Slug, Title =x.ShortName}).ToList();
     }
 
     public async Task<IActionResult> Index()
@@ -54,6 +56,23 @@ public class HomeController : Controller
         }
 
         return BadRequest($"<ul class='error-list'>{string.Join(string.Empty, ModelState.Values.SelectMany(v => v.Errors).Select(x => $"<li>{x.ErrorMessage}</li>"))}</ul>");
+    }
+
+    public  IActionResult GetRealms(Enums.Regions region)
+    {
+
+
+        var realms = new List<dynamic>();
+
+        for (var i =1;i<new Random().Next(2,10);i++)
+        {
+            realms.Add(new { 
+                Value = $"{region}_Realm_{i}",
+                Text = $"{region} Realm {i}"
+            });
+        }        
+
+        return Json(realms);
     }
 
 

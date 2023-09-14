@@ -88,3 +88,14 @@ body {
     margin-top: 0;
     margin-bottom: 0;
 }
+
+.actions-btn{
+    border:solid 1px #353535;
+    background-color:var(--bs-body-bg);
+    color: var(--bs-body-color);
+}
+
+.actions-btn:hover {
+    border: solid 1px #353535;
+    
+}

@@ -190,7 +190,7 @@ public class RcLogic : IRcLogic
         }
     }
 
-    public async Task<ProcessedCharacter?> ProcessCharacter(string region, string realm, string name, double targetRating, bool thisweekOnly, string? avoidDung, int? maxKeyLevel)
+    public async Task<ProcessedCharacter?> ProcessCharacter(string region, string realm, string name, double targetRating, bool thisweekOnly, List<string>? avoidDungs, int? maxKeyLevel)
     {
         var seasonInfo = await GetCachedValue("SeasonInfo", region, () => GetWowCurrentSeason(region));
         if (seasonInfo == null) { return null; }
@@ -253,7 +253,7 @@ public class RcLogic : IRcLogic
                     {
                         dungeon.TimeLimit = await GetCachedValue($"{dungeon.Slug}TimeLimit", region, () => GetDungoenTimeLimit(region, seasonName, dungeon.Slug ?? ""));
                     }
-                    if (dungeon.Slug != avoidDung) runPool.Add(dungeon);
+                    if (avoidDungs == null || !avoidDungs.Contains(dungeon.Slug ?? "")) runPool.Add(dungeon);
                 }
             }
 

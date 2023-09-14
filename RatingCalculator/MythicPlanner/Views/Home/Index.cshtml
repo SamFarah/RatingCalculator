@@ -32,17 +32,52 @@
                     success: function (result) { $("#CharInfoDiv").html(result); },
                     error: function (xhr) {
                         $("#CharInfoDiv").html(`<div class="alert alert-danger " role="alert">
-                                                    <div>
-                                                        ${xhr.responseText}
-                                                    </div>
-                                                </div>`);
+                                                                                                            <div>
+                                                                                                                ${xhr.responseText}
+                                                                                                            </div>
+                                                                                                        </div>`);
                     }
                 });
 
             });
         });
 
+        // $(function () {
 
+        //     function populateRealmSelect(items) {
+        //         var realmSelect = $('#@(Html.NameFor(m => m.Realm))');
+        //         realmSelect.html('');
+        //         realmSelect.append('<option value="" disabled>Select one--</option>');
+
+        //         items.forEach(function (item) {
+        //             var optionData = '<option value="' + item.value + '">' + item.text + '</option>';
+        //             realmSelect.append(optionData);
+        //         });
+
+        //         realmSelect.selectpicker('destroy');
+        //         realmSelect.selectpicker('render')
+        //     };
+
+        //     function GetRealmsSelectItems(region) {                                                
+        //         $.ajax({
+        //             url: '/@ViewContext.RouteData.Values["controller"]/GetRealms',
+        //             type: 'GET',
+        //             datatype: 'JSON',
+        //             data: { region },
+        //             success: function (data) { populateRealmSelect(data); }
+        //                 });
+                
+        //     }
+        //     var regionSelect = $('#@(Html.NameFor(m => m.Region))');
+        //     GetRealmsSelectItems(regionSelect.val());
+
+
+        //     //Dropdownlist Selectedchange event
+        //     regionSelect.change(function () {
+        //         var selectedRegion = this.options[this.selectedIndex].value;
+        //         GetRealmsSelectItems(selectedRegion);
+        //     });
+        // });
     </script>
 }
 <form class="needs-validation" novalidate>
@@ -65,6 +100,9 @@
                     <div class="col-8">
                         <Label asp-for="Realm" class="mb-1 form-label"></Label>
                         <input asp-for="Realm" class="form-control" data-bs-theme="light" />
+                        @* <select asp-for="Realm" class="selectpicker form-control" data-live-search="true" required
+                                title="Select Realm">                                                       
+                        </select> *@
                     </div>
                 </div>
                 <div class="row mb-2">
@@ -92,8 +130,13 @@
                     <div class="col-8">
 
                         <Label asp-for="AvoidDungeon" class="mb-1 form-label"></Label>
-                        <select asp-for="AvoidDungeon" asp-items="ViewBag.seasonDungeons" class="form-select" data-bs-theme="light">
-                            <option selected="selected" value="">Dont avoid any dungeons</option>
+                        <select asp-for="AvoidDungeon" class="selectpicker"
+                                multiple data-actions-box="true"
+                                title="Dont avoid any dungeons">
+                            @foreach (var item in ViewBag.seasonDungeons)
+                            {
+                                <option value="@item.Value" title="@item.Title">@item.Text</option>
+                            }
                         </select>
                     </div>
                     <div class="col-4 position-relative">
@@ -124,22 +167,22 @@
 
                     </div>
                 </div>
-                <div class="row mb-3">
-                    <div class="col d-none">
-                        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7855962973375225"
-                                crossorigin="anonymous"></script>
-                        <!-- Ad Unit -->
-                        <ins class="adsbygoogle"
-                             style="display:block"
-                             data-ad-client="ca-pub-7855962973375225"
-                             data-ad-slot="4449400025"
-                             data-ad-format="auto"
-                             data-full-width-responsive="true"></ins>
-                        <script>
-                            (adsbygoogle = window.adsbygoogle || []).push({});
-                        </script>
-                    </div>
+                @* <div class="row mb-3">
+                <div class="col">
+                <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7855962973375225"
+                crossorigin="anonymous"></script>
+                <!-- Ad Unit -->
+                <ins class="adsbygoogle"
+                style="display:block"
+                data-ad-client="ca-pub-7855962973375225"
+                data-ad-slot="4449400025"
+                data-ad-format="auto"
+                data-full-width-responsive="true"></ins>
+                <script>
+                (adsbygoogle = window.adsbygoogle || []).push({});
+                </script>
                 </div>
+                </div> *@
             </div>
         </div>
 

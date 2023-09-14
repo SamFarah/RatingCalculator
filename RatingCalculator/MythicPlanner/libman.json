@@ -12,6 +12,23 @@
         "js/bootstrap.bundle.min.js",
         "css/bootstrap.min.css"
       ]
+    },
+    {
+      "provider": "cdnjs",
+      "library": "popper.js@2.11.8",
+      "destination": "wwwroot/lib/popper.js/",
+      "files": [
+        "umd/popper.min.js"
+      ]
+    },
+    {
+      "provider": "cdnjs",
+      "library": "bootstrap-select@1.14.0-beta3",
+      "destination": "wwwroot/lib/bootstrap-select/",
+      "files": [
+        "css/bootstrap-select.min.css",
+        "js/bootstrap-select.min.js"
+      ]
     }
   ]
 }

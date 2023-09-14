@@ -23,8 +23,8 @@ public class SearchToonViewModel
     [Display(Name = "Target Rating")]
     public int? TargetRating { get; set; } = 0;
 
-    [Display(Name = "Avoid a Dungeon")]
-    public string? AvoidDungeon { get; set; }
+    [Display(Name = "Avoid These Dungeons")]
+    public List<string>? AvoidDungeon { get; set; }
 
     [Required]
     [Range(2, 50)]
