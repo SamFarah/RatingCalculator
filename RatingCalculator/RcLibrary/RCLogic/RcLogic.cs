@@ -203,7 +203,7 @@ public class RcLogic : IRcLogic
         if (raiderIoToon == null) { return null; }
         var allBestPlayerRuns = new List<KeyRun>();
         int FortAffixID = 10;
-        double? maxObtainableDunScore = 490.0;
+        //double? maxObtainableDunScore = 490.0;
 
         if (raiderIoToon?.BestMythicRuns != null) allBestPlayerRuns.AddRange(raiderIoToon.BestMythicRuns);
         if (raiderIoToon?.AlternateMythicRuns != null) allBestPlayerRuns.AddRange(raiderIoToon.AlternateMythicRuns);
@@ -263,7 +263,7 @@ public class RcLogic : IRcLogic
             {
 
                 var targetDungeonScore = (targetRating - (output.Rating.Value - runPool.Take(i).Sum(x => x.Score))) / i;
-                if (targetDungeonScore > maxObtainableDunScore) continue;
+                //if (targetDungeonScore > maxObtainableDunScore) continue;
                 var anOptionList = GetMinRuns(targetDungeonScore, runPool, i, thisWeeksAffix, thisweekOnly, maxKeyLevel ?? 30);
                 if (anOptionList != null)
                 {
@@ -283,6 +283,29 @@ public class RcLogic : IRcLogic
         return output;
     }
 
+    private DungeonMetrics? GetDungeonMetrics(double bestScore)
+    {
+        DungeonMetrics? dungeonMetric;
+        if (bestScore > 245)
+        {
+            var theoreticalLevel = (int)((bestScore - 239) / 7.0) + 30; // to get a rating that requires a key higher than level 30, this will calculates the theoretical key
+                                                                        // level assuming that every level over 30 adds 7 base points
+                                                                        // i.e 240 base for 30, so 247 base for 31, and 254 base for 32, etc...
+                                                                        // not sure about this assumption though, since as of today (the 14th of september 2023)
+                                                                        // the highest key achieved is a 32,
+                                                                        // so i do not have enough data to test this assumption.
+                                                                        // on the other hand, can be a safe assumption since every key adds 7 base points to the one 
+                                                                        // before it starting from key level 11
+            dungeonMetric = new DungeonMetrics
+            {
+                Level = theoreticalLevel,
+                Base = 240.0 + ((theoreticalLevel - 30) * 7.0)
+            };
+        }
+        else dungeonMetric = _dungeonMatrix.Where(x => bestScore <= x.Max && (bestScore >= x.Base || bestScore <= x.Base - 5)).FirstOrDefault();
+        return dungeonMetric;
+    }
+
     private List<KeyRun>? GetMinRuns(double? targetDungeonScore, List<DungeonWithScores> runPool, int runCount, Affix? thisWeeksAffix, bool thisweekOnly, int maxKeyLevel)
     {
         if (thisWeeksAffix == null) { throw new Exception("Cant get this weeks affix"); }
@@ -294,8 +317,8 @@ public class RcLogic : IRcLogic
             {
                 var altScore = (thisWeeksAffix.Id == 9 ? runPool[i].FortScore : runPool[i].TyrScore) ?? 0;
                 var bestScore = ((nextDungoenTarget - (altScore * 0.5)) / 1.5) ?? 0;
-                if (bestScore >= 245) return null;
-                var dungeonMetric = _dungeonMatrix.Where(x => bestScore <= x.Max && (bestScore >= x.Base || bestScore <= x.Base - 5)).FirstOrDefault();
+
+                var dungeonMetric = GetDungeonMetrics(bestScore);
                 if (dungeonMetric != null)
                 {
                     if (dungeonMetric.Level > maxKeyLevel) return null;
@@ -303,6 +326,7 @@ public class RcLogic : IRcLogic
 
                     if (dungeonMetric.Level > 20 && bestScore < dungeonMetric.Base)
                     {
+
                         // if the chosen metric was to not time a 21+ then find the first level that at max gives us the score we need
                         dungeonMetric = _dungeonMatrix.Where(x => bestScore <= x.Max).FirstOrDefault();
                         if (dungeonMetric == null) return null;
@@ -352,9 +376,8 @@ public class RcLogic : IRcLogic
             else
             {
                 var bestScore = (nextDungoenTarget ?? 0) / 2;
-                if (bestScore >= 245) return null;
 
-                var dungeonMetric = _dungeonMatrix.Where(x => bestScore <= x.Max && (bestScore >= x.Base || bestScore <= x.Base - 5)).FirstOrDefault();
+                var dungeonMetric = GetDungeonMetrics(bestScore);
                 if (dungeonMetric != null)
                 {
                     if (dungeonMetric.Level > maxKeyLevel) return null;
@@ -454,5 +477,5 @@ public class RcLogic : IRcLogic
     }
 
     public List<DungeonMetrics> GetDungeonMetrics() => _dungeonMatrix;
-    
+
 }

@@ -1,8 +1,5 @@
 ﻿@model WowCharacterViewModel
 
-
-
-
 <div class="row">
     <div style="width:110px">
         <img src="@Model.ThumbnailUrl" alt="@Model.Name" width="100" />
@@ -33,7 +30,7 @@
 </div>
 <div class="row">
     <div class="col">
-        <small class="text-muted">Last update @Model.LastCrawledAt</small>
+        <small class="text-muted">Last update @Model.LastCrawledAt.ToString("yyyy-MM-dd hh:mm:ss tt")</small>
     </div>
 </div>
 <div class="row">
@@ -68,6 +65,7 @@
                 var optionCounter = 0;
                 @foreach (var runOption in Model.RunOptions)
                 {
+                    @if (runOption.Count == 0) continue;
                     <div class="card mb-2">
                         <div class="card-header">
                             Option @(++optionCounter) @(optionCounter == 1 ? "(Fastest)" : optionCounter == Model.RunOptions?.Count ? "(Easiest)" : "")
@@ -94,9 +92,12 @@
                                         <tr>
                                             <td>@run.DungeonName</td>
                                             <td style="white-space:nowrap">
-                                                @run.KeyLevel @for (var i = 0; i < run.PlussesCount; i++)
+                                                <span class="@(run.ClearTimeMs>run.TimeLimit? "text-muted": string.Empty) run.PlussesCount">@run.KeyLevel</span> @for (var i = 0; i < run.PlussesCount; i++)
                                                 {
-                                                    @Html.Raw("+")
+                                                    <svg class="bi opacity-50 mb-1" width="0.5em" height="0.5em" fill="gold">
+                                                        <use href="/images/bootstrap-icons.svg#star-fill"></use>
+                                                    </svg>
+
                                                 }
                                             </td>
                                             <td>

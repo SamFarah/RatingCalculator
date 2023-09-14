@@ -27,7 +27,7 @@ public class SearchToonViewModel
     public string? AvoidDungeon { get; set; }
 
     [Required]
-    [Range(2, 30)]
+    [Range(2, 50)]
     [Display(Name = "Max Level")]
     public int? MaxKeyLevel { get; set; } = 30;
 
