@@ -16,11 +16,21 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <Content Remove="appsettings.Development.json" />
+	  <Content Remove="appsettings.json" />
+	</ItemGroup>
+
+	<ItemGroup>
 	  <ProjectReference Include="..\RcLibrary\RcLibrary.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
 	  <Folder Include="wwwroot\lib\fontawesome\" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Include="appsettings.Development.json" />
+	  <None Include="appsettings.json" />
 	</ItemGroup>
 
 </Project>
