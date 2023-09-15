@@ -24,6 +24,8 @@ public static class WebAppExtensions
               name: "default",
               pattern: "{controller=Home}/{action=Index}/{id?}");
 
+        app.Logger.LogInformation("Starting application in {env} environment", app.Environment.EnvironmentName);
+
         return app;
     }
 }

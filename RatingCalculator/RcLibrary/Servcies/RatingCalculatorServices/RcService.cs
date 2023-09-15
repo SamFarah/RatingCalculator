@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.Extensions.Logging;
 using RcLibrary.Models;
 using RcLibrary.Models.BlizzardModels;
 using RcLibrary.Models.RaiderIoModels;
@@ -14,7 +15,7 @@ public class RcService : IRcService
     private readonly IRaiderIoService _raiderIo;
     private readonly IBlizzardService _blizzard;
     private readonly IMapper _mapper;
-
+    private readonly ILogger<RcService> _logger;
     private readonly List<DungeonMetrics> _dungeonMatrix = new()
     {
         new DungeonMetrics { Level = 2  , Base = 40 },
@@ -70,18 +71,22 @@ public class RcService : IRcService
     public RcService(IMemoryCacheService memoryCache,
                      IRaiderIoService raiderIo,
                      IBlizzardService blizzard,
-                     IMapper mapper)
+                     IMapper mapper,
+                     ILogger<RcService> logger)
     {
         _memoryCache = memoryCache;
         _raiderIo = raiderIo;
         _blizzard = blizzard;
         _mapper = mapper;
+        _logger = logger;
     }
 
 
 
     public async Task<ProcessedCharacter?> ProcessCharacter(string region, string realm, string name, double targetRating, bool thisweekOnly, List<string>? avoidDungs, int? maxKeyLevel)
     {
+        _logger.LogInformation("Processing {characterName}-{region}-{realm} with target rating: {targetRating}", name, region, realm, targetRating);
+
         var seasonInfo = await _memoryCache.GetCachedValue($"SeasonInfo{region}", () => _raiderIo.GetWowCurrentSeason(region));
         if (seasonInfo == null) { return null; }
         var seasonName = seasonInfo.Slug ?? "";
