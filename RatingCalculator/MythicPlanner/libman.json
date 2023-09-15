@@ -18,7 +18,8 @@
       "library": "popper.js@2.11.8",
       "destination": "wwwroot/lib/popper.js/",
       "files": [
-        "umd/popper.min.js"
+        "umd/popper.min.js",
+        "umd/popper.min.js.map"
       ]
     },
     {
@@ -27,7 +28,8 @@
       "destination": "wwwroot/lib/bootstrap-select/",
       "files": [
         "css/bootstrap-select.min.css",
-        "js/bootstrap-select.min.js"
+        "js/bootstrap-select.min.js",
+        "js/bootstrap-select.min.js.map"
       ]
     }
   ]
