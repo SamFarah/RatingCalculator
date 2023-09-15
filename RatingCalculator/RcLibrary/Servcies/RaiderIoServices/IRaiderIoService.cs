@@ -1,0 +1,11 @@
+﻿using RcLibrary.Models;
+
+namespace RcLibrary.Servcies.RaiderIoServices;
+public interface IRaiderIoService
+{
+    Task<RaiderIoCharacter?> GetCharacter(string region, string realm, string name, string season);
+    Task<Affix?> GetCurrentBaseAffix(string region);
+    Task<int> GetDungoenTimeLimit(string region, string seasonName, string dungeonName);
+    Task<List<RatingColour>?> GetRatingColours(string seasonName);
+    Task<Season?> GetWowCurrentSeason(string region);
+}

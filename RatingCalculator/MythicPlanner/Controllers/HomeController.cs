@@ -1,20 +1,19 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using MythicPlanner.Models;
 using RcLibrary.Models;
-using RcLibrary.RCLogic;
+using RcLibrary.Servcies.RatingCalculatorServices;
 using System.Diagnostics;
 
 namespace MythicPlanner.Controllers;
 
 public class HomeController : Controller
 {
-    private readonly IRcLogic _ratingCalculator;
+    private readonly IRcService _ratingCalculator;
     private readonly IMapper _mapper;
     private readonly ILogger<HomeController> _logger;
 
-    public HomeController(IRcLogic ratingCalculator,
+    public HomeController(IRcService ratingCalculator,
                           IMapper mapper,
                           ILogger<HomeController> logger)
     {
@@ -28,7 +27,7 @@ public class HomeController : Controller
     private async Task GetDungeonsView()
     {
         var season = await _ratingCalculator.GetSeason();
-        ViewBag.seasonDungeons = season?.Dungeons?.Select(x => new { Text = x.Name, Value = x.Slug, Title =x.ShortName}).ToList();
+        ViewBag.seasonDungeons = season?.Dungeons?.Select(x => new { Text = x.Name, Value = x.Slug, Title = x.ShortName }).ToList();
     }
 
     public async Task<IActionResult> Index()
@@ -58,19 +57,20 @@ public class HomeController : Controller
         return BadRequest($"<ul class='error-list'>{string.Join(string.Empty, ModelState.Values.SelectMany(v => v.Errors).Select(x => $"<li>{x.ErrorMessage}</li>"))}</ul>");
     }
 
-    public  IActionResult GetRealms(Enums.Regions region)
+    public IActionResult GetRealms(Enums.Regions region)
     {
 
 
         var realms = new List<dynamic>();
 
-        for (var i =1;i<new Random().Next(2,10);i++)
+        for (var i = 1; i < new Random().Next(2, 10); i++)
         {
-            realms.Add(new { 
+            realms.Add(new
+            {
                 Value = $"{region}_Realm_{i}",
                 Text = $"{region} Realm {i}"
             });
-        }        
+        }
 
         return Json(realms);
     }

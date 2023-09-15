@@ -130,7 +130,7 @@
                     <div class="col-8">
 
                         <Label asp-for="AvoidDungeon" class="mb-1 form-label"></Label>
-                        <select asp-for="AvoidDungeon" class="selectpicker"
+                        <select asp-for="AvoidDungeon" class="selectpicker form-control"
                                 multiple data-actions-box="true"
                                 title="Dont avoid any dungeons">
                             @foreach (var item in ViewBag.seasonDungeons)

@@ -1,20 +1,16 @@
 ﻿using AutoMapper;
-using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using RcLibrary.Helpers;
 using RcLibrary.Models;
-using RcLibrary.Models.Configurations;
+using RcLibrary.Servcies.BlizzardServices;
+using RcLibrary.Servcies.RaiderIoServices;
 
-namespace RcLibrary.RCLogic;
+namespace RcLibrary.Servcies.RatingCalculatorServices;
 
-public class RcLogic : IRcLogic
+public class RcService : IRcService
 {
-    private readonly ILogger<RcLogic> _logger;
-    private readonly IApiHelper _raiderIoApi;
+    private readonly IRaiderIoService _raiderIo;
+    private readonly BlizzardService _blizzard;
     private readonly IMapper _mapper;
-    private readonly Settings _config;
     private readonly IMemoryCache _memoryCache;
 
     private readonly List<DungeonMetrics> _dungeonMatrix = new()
@@ -69,19 +65,15 @@ public class RcLogic : IRcLogic
     };
 
 
-    public RcLogic(ILogger<RcLogic> logger,
-                   IApiHelper raiderIoApi,
-                   IOptions<Settings> config,
-                   IMapper mapper,
-                   IMemoryCache memoryCache)
+    public RcService(IRaiderIoService raiderIo,
+                     BlizzardService blizzard,
+                     IMapper mapper,
+                     IMemoryCache memoryCache)
     {
-        _logger = logger;
-        _config = config.Value;
-        _raiderIoApi = raiderIoApi;
+        _raiderIo = raiderIo;
+        _blizzard = blizzard;
         _mapper = mapper;
         _memoryCache = memoryCache;
-        _raiderIoApi.InitializeClient(_config.RaiderIOAPI ?? "");
-
     }
 
     private async Task<T?> GetCachedValue<T>(string cacheKey, string region, Func<Task<T>> getter)
@@ -96,109 +88,15 @@ public class RcLogic : IRcLogic
         return cachedValue;
     }
 
-    private async Task<RaiderIoCharacter?> GetCharacter(string region, string realm, string name, string season)
-    {
-        string[] fields = {
-            $"mythic_plus_scores_by_season:{season}",
-            "mythic_plus_best_runs",
-            "mythic_plus_alternate_runs",
-            "guild"
-        };
-        var qsParams = new Dictionary<string, string>() {
-            { "region", region},
-            { "realm", realm },
-            { "name", name },
-            { "fields", string.Join(",",fields)}
-        };
-        var endpoint = new Uri(QueryHelpers.AddQueryString("characters/profile", qsParams), UriKind.Relative);
-        try
-        {
-            var toon = await _raiderIoApi.GetAsync<RaiderIoCharacter>(endpoint.ToString());
-            return toon;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting character from raider.io:{errorMessage}", ex.Message);
-            return null;
-        }
-    }
-
-    private async Task<List<RatingColour>?> GetRatingColours(string seasonName)
-    {
-        var qsParams = new Dictionary<string, string>() { { "season", seasonName } };
-        var endpoint = new Uri(QueryHelpers.AddQueryString("mythic-plus/score-tiers", qsParams), UriKind.Relative);
-        try
-        {
-            var ratingColours = await _raiderIoApi.GetAsync<List<RatingColour>>(endpoint.ToString());
-            return ratingColours;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting static data from raider.io:{errorMessage}", ex.Message);
-            return null;
-        }
-    }
-
-    private async Task<int> GetDungoenTimeLimit(string region, string seasonName, string dungeonName)
-    {
-        var qsParams = new Dictionary<string, string>() { { "region", region }, { "season", seasonName }, { "dungeon", dungeonName }, };
-        var endpoint = new Uri(QueryHelpers.AddQueryString("mythic-plus/runs", qsParams), UriKind.Relative);
-        try
-        {
-            var runDetails = await _raiderIoApi.GetAsync<RunsResponse>(endpoint.ToString());
-            var timeLimit = (runDetails?.Rankings?.First()?.run?.Dungeon?.TimeLimitMS) ?? 0;
-            return timeLimit;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting static data from raider.io:{errorMessage}", ex.Message);
-            return 0;
-        }
-    }
-
-    private async Task<Season?> GetWowCurrentSeason(string region)
-    {
-        var qsParams = new Dictionary<string, string>() { { "expansion_id", _config.ExpansionId.ToString() } };
-        var endpoint = new Uri(QueryHelpers.AddQueryString("mythic-plus/static-data", qsParams), UriKind.Relative);
-        try
-        {
-            var staticData = await _raiderIoApi.GetAsync<WowStaticData>(endpoint.ToString());
-            var currentDate = DateTime.UtcNow;
-            var season = staticData?.Seasons?.Where(x => x != null && currentDate >= x.Starts?[region] && (x.Ends?[region] == null || currentDate < x.Ends?[region])).FirstOrDefault();
-            return season;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting static data from raider.io:{errorMessage}", ex.Message);
-            return null;
-        }
-    }
-
-    public async Task<Affix?> GetCurrentBaseAffix(string region)
-    {
-        var qsParams = new Dictionary<string, string>() { { "region", region } };
-        var endpoint = new Uri(QueryHelpers.AddQueryString("mythic-plus/affixes", qsParams), UriKind.Relative);
-        try
-        {
-            var staticData = await _raiderIoApi.GetAsync<WeeksAffixes>(endpoint.ToString());
-            return staticData?.Affixes?.Where(x => x.Id == 9 || x.Id == 10).First();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting static data from raider.io:{errorMessage}", ex.Message);
-            return null;
-        }
-    }
-
     public async Task<ProcessedCharacter?> ProcessCharacter(string region, string realm, string name, double targetRating, bool thisweekOnly, List<string>? avoidDungs, int? maxKeyLevel)
     {
-        var seasonInfo = await GetCachedValue("SeasonInfo", region, () => GetWowCurrentSeason(region));
+        var seasonInfo = await GetCachedValue("SeasonInfo", region, () => _raiderIo.GetWowCurrentSeason(region));
         if (seasonInfo == null) { return null; }
         var seasonName = seasonInfo.Slug ?? "";
 
-        var thisWeeksAffix = await GetCachedValue("WeeksAffix", region, () => GetCurrentBaseAffix(region));
-        var raiderIoToon = await GetCharacter(region, realm, name, seasonName);
-        var ratingColours = await GetCachedValue("RatingColours", region, () => GetRatingColours(seasonName));
+        var thisWeeksAffix = await GetCachedValue("WeeksAffix", region, () => _raiderIo.GetCurrentBaseAffix(region));
+        var raiderIoToon = await _raiderIo.GetCharacter(region, realm, name, seasonName);
+        var ratingColours = await GetCachedValue("RatingColours", region, () => _raiderIo.GetRatingColours(seasonName));
 
         if (raiderIoToon == null) { return null; }
         var allBestPlayerRuns = new List<KeyRun>();
@@ -251,7 +149,7 @@ public class RcLogic : IRcLogic
                 {
                     if (dungeon.TimeLimit == 0)
                     {
-                        dungeon.TimeLimit = await GetCachedValue($"{dungeon.Slug}TimeLimit", region, () => GetDungoenTimeLimit(region, seasonName, dungeon.Slug ?? ""));
+                        dungeon.TimeLimit = await GetCachedValue($"{dungeon.Slug}TimeLimit", region, () => _raiderIo.GetDungoenTimeLimit(region, seasonName, dungeon.Slug ?? ""));
                     }
                     if (avoidDungs == null || !avoidDungs.Contains(dungeon.Slug ?? "")) runPool.Add(dungeon);
                 }
@@ -272,7 +170,7 @@ public class RcLogic : IRcLogic
                     for (j = 0; j < anOptionList.Count; j++)
                     {
                         adjustSum += (anOptionList[j].NewScore ?? 0) - (anOptionList[j].OldScore ?? 0);
-                        if (adjustSum > (targetRating - output.Rating.Value)) { break; }
+                        if (adjustSum > targetRating - output.Rating.Value) { break; }
 
                     }
                     output.RunOptions.Add(anOptionList.Take(j + 1).ToList());
@@ -299,7 +197,7 @@ public class RcLogic : IRcLogic
             dungeonMetric = new DungeonMetrics
             {
                 Level = theoreticalLevel,
-                Base = 240.0 + ((theoreticalLevel - 30) * 7.0)
+                Base = 240.0 + (theoreticalLevel - 30) * 7.0
             };
         }
         else dungeonMetric = _dungeonMatrix.Where(x => bestScore <= x.Max && (bestScore >= x.Base || bestScore <= x.Base - 5)).FirstOrDefault();
@@ -316,7 +214,7 @@ public class RcLogic : IRcLogic
             if (thisweekOnly)
             {
                 var altScore = (thisWeeksAffix.Id == 9 ? runPool[i].FortScore : runPool[i].TyrScore) ?? 0;
-                var bestScore = ((nextDungoenTarget - (altScore * 0.5)) / 1.5) ?? 0;
+                var bestScore = (nextDungoenTarget - altScore * 0.5) / 1.5 ?? 0;
 
                 var dungeonMetric = GetDungeonMetrics(bestScore);
                 if (dungeonMetric != null)
@@ -337,7 +235,7 @@ public class RcLogic : IRcLogic
                             bestScore = dungeonMetric.Base;
 
                             // since we went a bit higher on these dungeons, we need to adjust the next target Dugneon score to counter it                                
-                            var x = (bestScore * 1.5) + (altScore * 0.5) - targetDungeonScore;
+                            var x = bestScore * 1.5 + altScore * 0.5 - targetDungeonScore;
                             nextDungoenTarget -= x;
                         }
                     }
@@ -354,12 +252,12 @@ public class RcLogic : IRcLogic
                     {
 
                         var timePercent = Math.Min(0.4, (double)((dungeonMetric.Base - bestScore - 5) / 12.5));
-                        time = runPool[i].TimeLimit + (runPool[i].TimeLimit * timePercent);
+                        time = runPool[i].TimeLimit + runPool[i].TimeLimit * timePercent;
                     }
                     else // beat timer
                     {
                         var timePercent = Math.Min(0.4, (double)((bestScore - dungeonMetric.Base) / 12.5));
-                        time = runPool[i].TimeLimit - (runPool[i].TimeLimit * timePercent);
+                        time = runPool[i].TimeLimit - runPool[i].TimeLimit * timePercent;
                     }
                     output.Add(new KeyRun
                     {
@@ -369,7 +267,7 @@ public class RcLogic : IRcLogic
                         ClearTimeMs = (int)time,
                         Affixes = new List<Affix> { thisWeeksAffix },
                         OldScore = runPool[i].Score,
-                        NewScore = (bestScore * 1.5) + (altScore * 0.5)
+                        NewScore = bestScore * 1.5 + altScore * 0.5
                     });
                 }
             }
@@ -393,7 +291,7 @@ public class RcLogic : IRcLogic
                             bestScore = dungeonMetric.Base;
 
                             // since we went a bit higher on these dungeons, we need to adjust the next target Dugneon score to counter it                           
-                            var x = (bestScore * 2) - targetDungeonScore;
+                            var x = bestScore * 2 - targetDungeonScore;
                             nextDungoenTarget -= x;
                         }
                     }
@@ -408,21 +306,21 @@ public class RcLogic : IRcLogic
                     if (bestScore < dungeonMetric.Base) // overtime
                     {
                         var timePercent = Math.Min(0.4, (double)((dungeonMetric.Base - bestScore - 5) / 12.5));
-                        time = runPool[i].TimeLimit + (runPool[i].TimeLimit * timePercent);
+                        time = runPool[i].TimeLimit + runPool[i].TimeLimit * timePercent;
                     }
                     else // beat timer
                     {
                         var timePercent = Math.Min(0.4, (double)((bestScore - dungeonMetric.Base) / 12.5));
-                        time = runPool[i].TimeLimit - (runPool[i].TimeLimit * timePercent);
+                        time = runPool[i].TimeLimit - runPool[i].TimeLimit * timePercent;
                     }
 
                     var didThisWeek = false;
                     double newScore = 0;
-                    if ((thisWeeksAffix.Id == 9 ? (runPool[i].TyrScore ?? 0) : (runPool[i].FortScore ?? 0)) < bestScore)
+                    if ((thisWeeksAffix.Id == 9 ? runPool[i].TyrScore ?? 0 : runPool[i].FortScore ?? 0) < bestScore)
                     {
                         didThisWeek = true;
-                        var forScore = thisWeeksAffix.Id == 9 ? (runPool[i].FortScore ?? 0) : bestScore;
-                        var tyrScore = thisWeeksAffix.Id == 10 ? (runPool[i].TyrScore ?? 0) : bestScore;
+                        var forScore = thisWeeksAffix.Id == 9 ? runPool[i].FortScore ?? 0 : bestScore;
+                        var tyrScore = thisWeeksAffix.Id == 10 ? runPool[i].TyrScore ?? 0 : bestScore;
                         newScore = Math.Max(forScore, tyrScore) * 1.5 + Math.Min(forScore, tyrScore) * 0.5;
                         output.Add(new KeyRun
                         {
@@ -436,7 +334,7 @@ public class RcLogic : IRcLogic
                         });
                     }
 
-                    if ((thisWeeksAffix.Id == 10 ? (runPool[i].TyrScore ?? 0) : (runPool[i].FortScore ?? 0)) < bestScore)
+                    if ((thisWeeksAffix.Id == 10 ? runPool[i].TyrScore ?? 0 : runPool[i].FortScore ?? 0) < bestScore)
                     {
                         double? oldScore = runPool[i].Score;
                         if (didThisWeek)
@@ -447,8 +345,8 @@ public class RcLogic : IRcLogic
                         else
                         {
 
-                            var forScore = thisWeeksAffix.Id == 10 ? (runPool[i].FortScore ?? 0) : bestScore;
-                            var tyrScore = thisWeeksAffix.Id == 9 ? (runPool[i].TyrScore ?? 0) : bestScore;
+                            var forScore = thisWeeksAffix.Id == 10 ? runPool[i].FortScore ?? 0 : bestScore;
+                            var tyrScore = thisWeeksAffix.Id == 9 ? runPool[i].TyrScore ?? 0 : bestScore;
 
                             newScore = Math.Max(forScore, tyrScore) * 1.5 + Math.Min(forScore, tyrScore) * 0.5;
                         }
@@ -472,7 +370,7 @@ public class RcLogic : IRcLogic
 
     public async Task<Season?> GetSeason()
     {
-        var seasonInfo = await GetCachedValue("SeasonInfo", "us", () => GetWowCurrentSeason("us"));
+        var seasonInfo = await GetCachedValue("SeasonInfo", "us", () => _raiderIo.GetWowCurrentSeason("us"));
         return seasonInfo;
     }
 

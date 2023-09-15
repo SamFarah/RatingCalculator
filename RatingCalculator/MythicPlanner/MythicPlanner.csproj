@@ -5,6 +5,7 @@
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<AssemblyVersion>1.2.*</AssemblyVersion>
+		<UserSecretsId>c4f6e7d8-eb26-462e-b8f7-9b42060fc312</UserSecretsId>
 	</PropertyGroup>
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
 		<Deterministic>False</Deterministic>
