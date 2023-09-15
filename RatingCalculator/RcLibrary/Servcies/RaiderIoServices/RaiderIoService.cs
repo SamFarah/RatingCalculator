@@ -2,8 +2,8 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RcLibrary.Helpers;
-using RcLibrary.Models;
 using RcLibrary.Models.Configurations;
+using RcLibrary.Models.RaiderIoModels;
 
 namespace RcLibrary.Servcies.RaiderIoServices;
 public class RaiderIoService : IRaiderIoService

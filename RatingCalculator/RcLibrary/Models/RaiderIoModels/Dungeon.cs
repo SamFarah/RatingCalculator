@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace RcLibrary.Models;
+namespace RcLibrary.Models.RaiderIoModels;
 
 public class Dungeon
 {
@@ -28,7 +28,7 @@ public class DungeonWithScores : Dungeon
     {
         get
         {
-            return (Math.Max(FortScore ?? 0, TyrScore ?? 0) * 1.5) + (Math.Min(FortScore ?? 0, TyrScore ?? 0) * 0.5);
+            return Math.Max(FortScore ?? 0, TyrScore ?? 0) * 1.5 + Math.Min(FortScore ?? 0, TyrScore ?? 0) * 0.5;
         }
     }
 

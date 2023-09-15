@@ -1,4 +1,4 @@
-﻿using RcLibrary.Models;
+﻿using RcLibrary.Models.RaiderIoModels;
 
 namespace RcLibrary.Servcies.RaiderIoServices;
 public interface IRaiderIoService

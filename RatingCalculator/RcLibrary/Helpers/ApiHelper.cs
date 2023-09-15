@@ -6,7 +6,7 @@ public class ApiHelper : IApiHelper
 {
     private HttpClient? _apiClient;
     public bool IsInitialized { get; set; } = false;
-    public HttpClient? ApiClient { get { return _apiClient; } }
+
 
     public void InitializeClient(string Url, int timeoutSeconds = 100)
     {
@@ -17,12 +17,30 @@ public class ApiHelper : IApiHelper
         IsInitialized = true;
     }
 
+    public void AddBasicAuthHeader(string authStr)
+    {
+        if (_apiClient != null)
+        {
+            _apiClient.DefaultRequestHeaders.Accept.Clear();
+            _apiClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", authStr);
+        }
+    }
+
+    public void AddBearerAuthHeader(string token)
+    {
+        if (_apiClient != null)
+        {
+            _apiClient.DefaultRequestHeaders.Accept.Clear();
+            _apiClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        }
+    }
+
     public async Task<T> GetAsync<T>(string endpoint)
     {
         try
         {
-            if (ApiClient == null) { throw new Exception("Not initialized"); }
-            using HttpResponseMessage response = await ApiClient.GetAsync(endpoint);
+            if (_apiClient == null) { throw new Exception("Not initialized"); }
+            using HttpResponseMessage response = await _apiClient.GetAsync(endpoint);
             if (response.IsSuccessStatusCode)
             {
                 var result = await response.Content.ReadAsAsync<T>();
@@ -34,5 +52,30 @@ public class ApiHelper : IApiHelper
             }
         }
         catch (Exception) { throw; }
+    }
+
+    public async Task<T> PostAsync<T>(string endpoint, HttpContent content)
+    {
+        try
+        {
+            if (_apiClient == null) { throw new Exception("Not initialized"); }
+            using HttpResponseMessage response = await _apiClient.PostAsync(endpoint, content);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadAsAsync<T>();
+                return result;
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                throw new Exception(error);
+            }
+        }
+        catch (Exception) { throw; }
+    }
+
+    public void Dispose()
+    {
+        _apiClient?.Dispose();
     }
 }

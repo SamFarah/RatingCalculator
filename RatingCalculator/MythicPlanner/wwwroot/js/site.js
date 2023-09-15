@@ -23,7 +23,3 @@
         }, true)
     })
 })()
-
-$(function () {
-    $('.selectpicker').selectpicker();
-});

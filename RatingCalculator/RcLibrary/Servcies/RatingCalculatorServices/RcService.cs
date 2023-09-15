@@ -1,17 +1,19 @@
 ﻿using AutoMapper;
-using Microsoft.Extensions.Caching.Memory;
 using RcLibrary.Models;
+using RcLibrary.Models.BlizzardModels;
+using RcLibrary.Models.RaiderIoModels;
 using RcLibrary.Servcies.BlizzardServices;
+using RcLibrary.Servcies.MemoryCacheServices;
 using RcLibrary.Servcies.RaiderIoServices;
 
 namespace RcLibrary.Servcies.RatingCalculatorServices;
 
 public class RcService : IRcService
 {
+    private readonly IMemoryCacheService _memoryCache;
     private readonly IRaiderIoService _raiderIo;
-    private readonly BlizzardService _blizzard;
+    private readonly IBlizzardService _blizzard;
     private readonly IMapper _mapper;
-    private readonly IMemoryCache _memoryCache;
 
     private readonly List<DungeonMetrics> _dungeonMatrix = new()
     {
@@ -65,38 +67,28 @@ public class RcService : IRcService
     };
 
 
-    public RcService(IRaiderIoService raiderIo,
-                     BlizzardService blizzard,
-                     IMapper mapper,
-                     IMemoryCache memoryCache)
+    public RcService(IMemoryCacheService memoryCache,
+                     IRaiderIoService raiderIo,
+                     IBlizzardService blizzard,
+                     IMapper mapper)
     {
+        _memoryCache = memoryCache;
         _raiderIo = raiderIo;
         _blizzard = blizzard;
         _mapper = mapper;
-        _memoryCache = memoryCache;
     }
 
-    private async Task<T?> GetCachedValue<T>(string cacheKey, string region, Func<Task<T>> getter)
-    {
-        cacheKey = $"{cacheKey}{region}";
-        if (!_memoryCache.TryGetValue(cacheKey, out T? cachedValue))
-        {
-            cachedValue = await getter();
-            var cacheEntryOptions = new MemoryCacheEntryOptions().SetAbsoluteExpiration(TimeSpan.FromHours(1));
-            _memoryCache.Set(cacheKey, cachedValue, cacheEntryOptions);
-        }
-        return cachedValue;
-    }
+
 
     public async Task<ProcessedCharacter?> ProcessCharacter(string region, string realm, string name, double targetRating, bool thisweekOnly, List<string>? avoidDungs, int? maxKeyLevel)
     {
-        var seasonInfo = await GetCachedValue("SeasonInfo", region, () => _raiderIo.GetWowCurrentSeason(region));
+        var seasonInfo = await _memoryCache.GetCachedValue($"SeasonInfo{region}", () => _raiderIo.GetWowCurrentSeason(region));
         if (seasonInfo == null) { return null; }
         var seasonName = seasonInfo.Slug ?? "";
 
-        var thisWeeksAffix = await GetCachedValue("WeeksAffix", region, () => _raiderIo.GetCurrentBaseAffix(region));
+        var thisWeeksAffix = await _memoryCache.GetCachedValue($"WeeksAffix{region}", () => _raiderIo.GetCurrentBaseAffix(region));
         var raiderIoToon = await _raiderIo.GetCharacter(region, realm, name, seasonName);
-        var ratingColours = await GetCachedValue("RatingColours", region, () => _raiderIo.GetRatingColours(seasonName));
+        var ratingColours = await _memoryCache.GetCachedValue($"RatingColours{region}", () => _raiderIo.GetRatingColours(seasonName));
 
         if (raiderIoToon == null) { return null; }
         var allBestPlayerRuns = new List<KeyRun>();
@@ -149,7 +141,7 @@ public class RcService : IRcService
                 {
                     if (dungeon.TimeLimit == 0)
                     {
-                        dungeon.TimeLimit = await GetCachedValue($"{dungeon.Slug}TimeLimit", region, () => _raiderIo.GetDungoenTimeLimit(region, seasonName, dungeon.Slug ?? ""));
+                        dungeon.TimeLimit = await _memoryCache.GetCachedValue($"{dungeon.Slug}TimeLimit{region}", () => _raiderIo.GetDungoenTimeLimit(region, seasonName, dungeon.Slug ?? ""));
                     }
                     if (avoidDungs == null || !avoidDungs.Contains(dungeon.Slug ?? "")) runPool.Add(dungeon);
                 }
@@ -370,10 +362,17 @@ public class RcService : IRcService
 
     public async Task<Season?> GetSeason()
     {
-        var seasonInfo = await GetCachedValue("SeasonInfo", "us", () => _raiderIo.GetWowCurrentSeason("us"));
+        var seasonInfo = await _memoryCache.GetCachedValue("SeasonInfous", () => _raiderIo.GetWowCurrentSeason("us"));
         return seasonInfo;
     }
 
     public List<DungeonMetrics> GetDungeonMetrics() => _dungeonMatrix;
+
+
+    public async Task<List<Realm>?> GetRegionRealmsAsync(string region)
+    {
+        var output = await _memoryCache.GetCachedValue($"Realms{region}", () => _blizzard.GetRegionRealms(region), 86400); // cache it once a day
+        return output;
+    }
 
 }

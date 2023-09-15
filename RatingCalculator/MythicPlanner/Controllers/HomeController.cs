@@ -57,22 +57,10 @@ public class HomeController : Controller
         return BadRequest($"<ul class='error-list'>{string.Join(string.Empty, ModelState.Values.SelectMany(v => v.Errors).Select(x => $"<li>{x.ErrorMessage}</li>"))}</ul>");
     }
 
-    public IActionResult GetRealms(Enums.Regions region)
+    public async Task<IActionResult> GetRealms(Enums.Regions region)
     {
-
-
-        var realms = new List<dynamic>();
-
-        for (var i = 1; i < new Random().Next(2, 10); i++)
-        {
-            realms.Add(new
-            {
-                Value = $"{region}_Realm_{i}",
-                Text = $"{region} Realm {i}"
-            });
-        }
-
-        return Json(realms);
+        var output = _mapper.Map<List<DropDownItem>>(await _ratingCalculator.GetRegionRealmsAsync(region.ToString()));
+        return Json(output);
     }
 
 

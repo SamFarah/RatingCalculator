@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace RcLibrary.Models;
+namespace RcLibrary.Models.RaiderIoModels;
 
 public class KeyRun
 {

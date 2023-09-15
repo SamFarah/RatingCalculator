@@ -1,6 +1,4 @@
-﻿
-
-using RcLibrary.Models;
+﻿using RcLibrary.Models.RaiderIoModels;
 
 namespace MythicPlanner.Models;
 

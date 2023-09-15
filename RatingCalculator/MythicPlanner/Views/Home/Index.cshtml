@@ -32,52 +32,66 @@
                     success: function (result) { $("#CharInfoDiv").html(result); },
                     error: function (xhr) {
                         $("#CharInfoDiv").html(`<div class="alert alert-danger " role="alert">
-                                                                                                            <div>
-                                                                                                                ${xhr.responseText}
-                                                                                                            </div>
-                                                                                                        </div>`);
+                                                                <div>
+                                                                    ${xhr.responseText}
+                                                                </div>
+                                                            </div>`);
                     }
                 });
 
             });
         });
 
-        // $(function () {
+        $(function () {
+            var realmSelect = $('#@(Html.NameFor(m => m.Realm))');
+            function populateRealmSelect(items) {
+                realmSelect.html('');
+                realmSelect.append('<option value="" disabled>Select one--</option>');
 
-        //     function populateRealmSelect(items) {
-        //         var realmSelect = $('#@(Html.NameFor(m => m.Realm))');
-        //         realmSelect.html('');
-        //         realmSelect.append('<option value="" disabled>Select one--</option>');
+                items.forEach(function (item) {
+                    var optionData = '<option value="' + item.value + '">' + item.text + '</option>';
+                    realmSelect.append(optionData);
+                });
 
-        //         items.forEach(function (item) {
-        //             var optionData = '<option value="' + item.value + '">' + item.text + '</option>';
-        //             realmSelect.append(optionData);
-        //         });
+                realmSelect.selectpicker('destroy');
+                realmSelect.selectpicker('render')
+            };
 
-        //         realmSelect.selectpicker('destroy');
-        //         realmSelect.selectpicker('render')
-        //     };
+            function GetRealmsSelectItems(region) {
+                $.ajax({
+                    url: '/@ViewContext.RouteData.Values["controller"]/GetRealms',
+                    type: 'GET',
+                    datatype: 'JSON',
+                    data: { region },
+                    beforeSend: function () {
+                        $('#RealmLoad').show();
+                        realmSelect.selectpicker('hide')
 
-        //     function GetRealmsSelectItems(region) {                                                
-        //         $.ajax({
-        //             url: '/@ViewContext.RouteData.Values["controller"]/GetRealms',
-        //             type: 'GET',
-        //             datatype: 'JSON',
-        //             data: { region },
-        //             success: function (data) { populateRealmSelect(data); }
-        //                 });
-                
-        //     }
-        //     var regionSelect = $('#@(Html.NameFor(m => m.Region))');
-        //     GetRealmsSelectItems(regionSelect.val());
+                    },
+                    complete: function () {
+                        realmSelect.selectpicker('show');
+                        $('#RealmLoad').hide();
+                        realmSelect.selectpicker('render')
+
+                    },
+                    success: function (data) { populateRealmSelect(data); }
+                });
+
+            }
+            var regionSelect = $('#@(Html.NameFor(m => m.Region))');
 
 
-        //     //Dropdownlist Selectedchange event
-        //     regionSelect.change(function () {
-        //         var selectedRegion = this.options[this.selectedIndex].value;
-        //         GetRealmsSelectItems(selectedRegion);
-        //     });
-        // });
+
+            //Dropdownlist Selectedchange event
+            regionSelect.change(function () {
+                var selectedRegion = this.options[this.selectedIndex].value;
+                GetRealmsSelectItems(selectedRegion);
+            });
+
+
+            GetRealmsSelectItems(regionSelect.val());
+
+        });
     </script>
 }
 <form class="needs-validation" novalidate>
@@ -99,10 +113,19 @@
                     </div>
                     <div class="col-8">
                         <Label asp-for="Realm" class="mb-1 form-label"></Label>
-                        <input asp-for="Realm" class="form-control" data-bs-theme="light" />
-                        @* <select asp-for="Realm" class="selectpicker form-control" data-live-search="true" required
-                                title="Select Realm">                                                       
-                        </select> *@
+                        @* <input asp-for="Realm" class="form-control" data-bs-theme="light" /> *@
+
+                        <div id="RealmLoad" class="dropdown bootstrap-select disabled form-control" style="display:none">
+                            <button type="button" tabindex="-1" class="btn dropdown-toggle bs-placeholder disabled btn-light" data-bs-toggle="dropdown" role="combobox" aria-owns="bs-select-3" aria-haspopup="listbox" aria-expanded="false" aria-disabled="true">                            
+                                <div>
+                                    <span class="spinner-border spinner-border-sm loadingSpinner" role="status" aria-hidden="true"></span><span role="status" class="ms-2">Loading Realms...</span>
+                                </div>
+                            </button>
+                        </div>
+
+                        <select asp-for="Realm" class="selectpicker form-control" data-live-search="true" required
+                                title="Select Realm" data-size="5">
+                        </select>
                     </div>
                 </div>
                 <div class="row mb-2">
