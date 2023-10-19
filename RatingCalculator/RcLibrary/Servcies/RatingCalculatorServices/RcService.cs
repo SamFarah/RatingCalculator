@@ -366,12 +366,7 @@ public class RcService : IRcService
         return output;
     }
 
-    public async Task<Season?> GetCurrentSeason()
-    {
-        //var seasonInfo = await _memoryCache.GetCachedValue("SeasonInfous", () => _raiderIo.GetWowCurrentSeason("us"));
-        //return seasonInfo;
-        return (await GetRegionSeasonsAsync("us"))?.FirstOrDefault();
-    }
+   
 
     public async Task<Season?> GetSeason(string region, string slug)
     {
@@ -397,7 +392,9 @@ public class RcService : IRcService
     {
         var seasons = await _memoryCache.GetCachedValue($"Seasons{region}", () => _raiderIo.GetRegionSeasons(region));
         var currentDate = DateTime.UtcNow;
-        return seasons?.FirstOrDefault(x => currentDate >= x.Starts?[region]
+        return seasons?.FirstOrDefault(x => x.Name != null
+                                            && !x.Name.Contains('•') // no better way to select none PTR and other patch seasons
+                                            && currentDate >= x.Starts?[region]
                                             && (x.Ends?[region] == null || currentDate < x.Ends?[region]));
     }
 }

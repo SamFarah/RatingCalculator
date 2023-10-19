@@ -27,7 +27,7 @@ public class HomeController : Controller
     private async Task GetSeasonView()
     {
         var seasons = await _ratingCalculator.GetRegionSeasonsAsync("us");
-        var currentSeason = await _ratingCalculator.GetCurrentSeason();
+        var currentSeason = await _ratingCalculator.GetWowCurrentSeason("us");
         ViewBag.seasonSlug = currentSeason?.Slug;
         ViewBag.seasons = seasons?.Select(x => new { Text = x.Name, Value = x.Slug, Selected = (x.Slug == currentSeason?.Slug) }).ToList();
     }
