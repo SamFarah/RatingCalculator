@@ -7,5 +7,5 @@ public interface IRaiderIoService
     Task<Affix?> GetCurrentBaseAffix(string region);
     Task<int> GetDungoenTimeLimit(string region, string seasonName, string dungeonName);
     Task<List<RatingColour>?> GetRatingColours(string seasonName);
-    Task<Season?> GetWowCurrentSeason(string region);
+    Task<List<Season>?> GetRegionSeasons(string region);        
 }

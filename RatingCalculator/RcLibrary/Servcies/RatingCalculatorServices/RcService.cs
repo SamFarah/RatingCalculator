@@ -6,6 +6,7 @@ using RcLibrary.Models.RaiderIoModels;
 using RcLibrary.Servcies.BlizzardServices;
 using RcLibrary.Servcies.MemoryCacheServices;
 using RcLibrary.Servcies.RaiderIoServices;
+using static RcLibrary.Models.Enums;
 
 namespace RcLibrary.Servcies.RatingCalculatorServices;
 
@@ -83,17 +84,17 @@ public class RcService : IRcService
 
 
 
-    public async Task<ProcessedCharacter?> ProcessCharacter(string region, string realm, string name, double targetRating, bool thisweekOnly, List<string>? avoidDungs, int? maxKeyLevel)
+    public async Task<ProcessedCharacter?> ProcessCharacter(string seasonSlug, string region, string realm, string name, double targetRating, bool thisweekOnly, List<string>? avoidDungs, int? maxKeyLevel)
     {
-        _logger.LogInformation("Processing {characterName}-{region}-{realm} with target rating: {targetRating}", name, region, realm, targetRating);
+        _logger.LogInformation("Processing {characterName}-{region}-{realm} with target rating: {targetRating} for season {season}", name, region, realm, targetRating, seasonSlug);
 
-        var seasonInfo = await _memoryCache.GetCachedValue($"SeasonInfo{region}", () => _raiderIo.GetWowCurrentSeason(region));
+        var seasonInfo = await GetSeason(region, seasonSlug);
         if (seasonInfo == null) { return null; }
         var seasonName = seasonInfo.Slug ?? "";
 
         var thisWeeksAffix = await _memoryCache.GetCachedValue($"WeeksAffix{region}", () => _raiderIo.GetCurrentBaseAffix(region));
         var raiderIoToon = await _raiderIo.GetCharacter(region, realm, name, seasonName);
-        var ratingColours = await _memoryCache.GetCachedValue($"RatingColours{region}", () => _raiderIo.GetRatingColours(seasonName));
+        var ratingColours = await _memoryCache.GetCachedValue($"RatingColours{region}_{seasonSlug}", () => _raiderIo.GetRatingColours(seasonName), checkNull: true);
 
         if (raiderIoToon == null) { return null; }
         var allBestPlayerRuns = new List<KeyRun>();
@@ -365,10 +366,16 @@ public class RcService : IRcService
         return output;
     }
 
-    public async Task<Season?> GetSeason()
+    public async Task<Season?> GetCurrentSeason()
     {
-        var seasonInfo = await _memoryCache.GetCachedValue("SeasonInfous", () => _raiderIo.GetWowCurrentSeason("us"));
-        return seasonInfo;
+        //var seasonInfo = await _memoryCache.GetCachedValue("SeasonInfous", () => _raiderIo.GetWowCurrentSeason("us"));
+        //return seasonInfo;
+        return (await GetRegionSeasonsAsync("us"))?.FirstOrDefault();
+    }
+
+    public async Task<Season?> GetSeason(string region, string slug)
+    {
+        return (await GetRegionSeasonsAsync(region))?.FirstOrDefault(x => x.Slug == slug);
     }
 
     public List<DungeonMetrics> GetDungeonMetrics() => _dungeonMatrix;
@@ -380,4 +387,17 @@ public class RcService : IRcService
         return output;
     }
 
+    public async Task<List<Season>?> GetRegionSeasonsAsync(string region)
+    {
+        var output = await _memoryCache.GetCachedValue($"Seasons{region}", () => _raiderIo.GetRegionSeasons(region));
+        return output;
+    }
+
+    public async Task<Season?> GetWowCurrentSeason(string region)
+    {
+        var seasons = await _memoryCache.GetCachedValue($"Seasons{region}", () => _raiderIo.GetRegionSeasons(region));
+        var currentDate = DateTime.UtcNow;
+        return seasons?.FirstOrDefault(x => currentDate >= x.Starts?[region]
+                                            && (x.Ends?[region] == null || currentDate < x.Ends?[region]));
+    }
 }

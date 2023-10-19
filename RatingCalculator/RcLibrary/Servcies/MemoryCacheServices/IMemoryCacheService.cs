@@ -2,5 +2,5 @@
 
 public interface IMemoryCacheService
 {
-    Task<T?> GetCachedValue<T>(string cacheKey, Func<Task<T>> getter, double ExpiresInSeconds = 3600);
+    Task<T?> GetCachedValue<T>(string cacheKey, Func<Task<T>> getter, double expiresInSeconds = 3600, bool checkNull = false);
 }

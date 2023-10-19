@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using MythicPlanner.Models;
 using RcLibrary.Models;
+using RcLibrary.Models.RaiderIoModels;
 using RcLibrary.Servcies.RatingCalculatorServices;
 using System.Diagnostics;
 
@@ -23,16 +24,18 @@ public class HomeController : Controller
     }
 
 
-
-    private async Task GetDungeonsView()
+    private async Task GetSeasonView()
     {
-        var season = await _ratingCalculator.GetSeason();
-        ViewBag.seasonDungeons = season?.Dungeons?.Select(x => new { Text = x.Name, Value = x.Slug, Title = x.ShortName }).ToList();
+        var seasons = await _ratingCalculator.GetRegionSeasonsAsync("us");
+        var currentSeason = await _ratingCalculator.GetCurrentSeason();
+        ViewBag.seasonSlug = currentSeason?.Slug;
+        ViewBag.seasons = seasons?.Select(x => new { Text = x.Name, Value = x.Slug, Selected = (x.Slug == currentSeason?.Slug) }).ToList();
     }
+ 
 
     public async Task<IActionResult> Index()
     {
-        await GetDungeonsView();
+        await GetSeasonView();        
         ViewBag.dungeonMatrix = _ratingCalculator.GetDungeonMetrics();
         return View();
     }
@@ -41,7 +44,8 @@ public class HomeController : Controller
     {
         if (ModelState.IsValid)
         {
-            var toon = await _ratingCalculator.ProcessCharacter((m.Region ?? Enums.Regions.US).ToString().ToLower(),
+            var toon = await _ratingCalculator.ProcessCharacter(m.SeasonSlug,
+                                                                (m.Region ?? Enums.Regions.US).ToString().ToLower(),
                                                                 m.Realm,
                                                                 m.CharacterName,
                                                                 m.TargetRating ?? 0,
@@ -63,6 +67,12 @@ public class HomeController : Controller
         return Json(output);
     }
 
+    public async Task<IActionResult> GetDungeons(string seasonSlug)
+    {                
+        var output = _mapper.Map<List<DropDownItem>>( (await _ratingCalculator.GetSeason("us", seasonSlug))?.Dungeons);
+        return Json(output);
+    }
+    
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()

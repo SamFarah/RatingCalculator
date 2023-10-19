@@ -32,10 +32,10 @@
                     success: function (result) { $("#CharInfoDiv").html(result); },
                     error: function (xhr) {
                         $("#CharInfoDiv").html(`<div class="alert alert-danger " role="alert">
-                                                                <div>
-                                                                    ${xhr.responseText}
-                                                                </div>
-                                                            </div>`);
+                                                                        <div>
+                                                                            ${xhr.responseText}
+                                                                        </div>
+                                                                    </div>`);
                     }
                 });
 
@@ -44,18 +44,34 @@
 
         $(function () {
             var realmSelect = $('#@(Html.NameFor(m => m.Realm))');
-            function populateRealmSelect(items) {
-                realmSelect.html('');
-                realmSelect.append('<option value="" disabled>Select one--</option>');
+            var dungSelect = $('#@(Html.NameFor(m => m.AvoidDungeon))');
+            // function populateRealmSelect(items) {
+            //     realmSelect.html('');
+            //     realmSelect.append('<option value="" disabled>Select one--</option>');
+
+            //     items.forEach(function (item) {
+            //         var optionData = '<option value="' + item.value + '">' + item.text + '</option>';
+            //         realmSelect.append(optionData);
+            //     });
+
+            //     realmSelect.selectpicker('destroy');
+            //     realmSelect.selectpicker('render');
+            // };
+
+            function populateSelect(select, items) {
+                select.html('');
+                select.append('<option value="" disabled>Select one--</option>');
 
                 items.forEach(function (item) {
-                    var optionData = '<option value="' + item.value + '">' + item.text + '</option>';
-                    realmSelect.append(optionData);
+                    var optionData = '<option value="' + item.value + '" title="' + item.title + '">' + item.text + '</option>';
+                    select.append(optionData);
                 });
 
-                realmSelect.selectpicker('destroy');
-                realmSelect.selectpicker('render')
+                select.selectpicker('destroy');
+                select.selectpicker('render');
             };
+
+            
 
             function GetRealmsSelectItems(region) {
                 $.ajax({
@@ -74,22 +90,54 @@
                         realmSelect.selectpicker('render')
 
                     },
-                    success: function (data) { populateRealmSelect(data); }
+                    success: function (data) { populateSelect(realmSelect,data); }
                 });
 
             }
+
+            function GetDungoenSelectItems(seasonSlug) {
+                $.ajax({
+                    url: '/@ViewContext.RouteData.Values["controller"]/GetDungeons',
+                    type: 'GET',
+                    datatype: 'JSON',
+                    data: { seasonSlug },
+                    beforeSend: function () {
+                        $('#DungeonLoad').show();
+                        dungSelect.selectpicker('hide')
+
+                    },
+                    complete: function () {
+                        dungSelect.selectpicker('show');
+                        $('#DungeonLoad').hide();
+                        dungSelect.selectpicker('render')
+
+                    },
+                    success: function (data) { populateSelect(dungSelect, data); }
+                });
+
+            }
+
+           
+
             var regionSelect = $('#@(Html.NameFor(m => m.Region))');
+            var seasonSelect = $('#@(Html.NameFor(m => m.SeasonSlug))');
 
 
 
             //Dropdownlist Selectedchange event
             regionSelect.change(function () {
                 var selectedRegion = this.options[this.selectedIndex].value;
-                GetRealmsSelectItems(selectedRegion);
+                GetRealmsSelectItems(selectedRegion);                
+            });
+
+            seasonSelect.change(function () {
+                var selectedSeason = this.options[this.selectedIndex].value;
+                GetDungoenSelectItems(selectedSeason);
             });
 
 
             GetRealmsSelectItems(regionSelect.val());
+            GetDungoenSelectItems('@ViewBag.seasonSlug');
 
         });
     </script>
@@ -116,8 +164,8 @@
                         @* <input asp-for="Realm" class="form-control" data-bs-theme="light" /> *@
 
                         <div id="RealmLoad" class="dropdown bootstrap-select disabled form-control" style="display:none">
-                            <button type="button" tabindex="-1" class="btn dropdown-toggle bs-placeholder disabled btn-light" data-bs-toggle="dropdown" role="combobox" aria-owns="bs-select-3" aria-haspopup="listbox" aria-expanded="false" aria-disabled="true">                            
-                                <div>                                    
+                            <button type="button" tabindex="-1" class="btn dropdown-toggle bs-placeholder disabled btn-light" data-bs-toggle="dropdown" role="combobox" aria-owns="bs-select-3" aria-haspopup="listbox" aria-expanded="false" aria-disabled="true">
+                                <div>
                                     <span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span class="ms-2">Loading Realms...</span>
                                 </div>
                             </button>
@@ -150,17 +198,33 @@
                 </div>
 
                 <div class="row mb-3">
+                    <div class="col">
+                        <Label asp-for="SeasonSlug" class="mb-1 form-label"></Label>        
+                        <select asp-for="SeasonSlug" class="selectpicker form-control" data-live-search="true" required
+                                title="Select Season" data-size="5">
+                            @foreach (var item in ViewBag.seasons)
+                            {
+                                <option value="@item.Value" selected="@item.Selected">@item.Text</option>
+                            }
+                        </select>
+
+                    </div>
+                </div>
+
+                <div class="row mb-3">
                     <div class="col-8">
 
                         <Label asp-for="AvoidDungeon" class="mb-1 form-label"></Label>
+                        <div id="DungeonLoad" class="dropdown bootstrap-select disabled form-control" style="display:none">
+                            <button type="button" tabindex="-1" class="btn dropdown-toggle bs-placeholder disabled btn-light" data-bs-toggle="dropdown" role="combobox" aria-owns="bs-select-3" aria-haspopup="listbox" aria-expanded="false" aria-disabled="true">
+                                <div>
+                                    <span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span class="ms-2">Loading Dungeons...</span>
+                                </div>
+                            </button>
+                        </div>
                         <select asp-for="AvoidDungeon" class="selectpicker form-control"
                                 multiple data-actions-box="true"
-                                title="Dont avoid any dungeons">
-                            @foreach (var item in ViewBag.seasonDungeons)
-                            {
-                                <option value="@item.Value" title="@item.Title">@item.Text</option>
-                            }
-                        </select>
+                                title="Dont avoid any dungeons" ></select>                                                       
                     </div>
                     <div class="col-4 position-relative">
                         <Label asp-for="MaxKeyLevel" class="mb-1 form-label"></Label>
@@ -179,7 +243,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="row mb-3">
+                <div class="row mb-2">
                     <div class="d-grid gap-2">
                         <button type="submit" class="btn btn-primary">
                             <span class="spinner-border spinner-border-sm loadingSpinner" role="status" aria-hidden="true" style="display:none"></span>
@@ -190,6 +254,7 @@
 
                     </div>
                 </div>
+
                 @* <div class="row mb-3">
                 <div class="col">
                 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7855962973375225"

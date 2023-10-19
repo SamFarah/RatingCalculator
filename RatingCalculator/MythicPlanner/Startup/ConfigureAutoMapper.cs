@@ -20,7 +20,13 @@ public static class AutoMapper
             cfg.CreateMap<KeyRun, KeyRunViewModel>();
             cfg.CreateMap<Realm, DropDownItem>()
             .ForMember(dest => dest.Text, opts => opts.MapFrom(src => src.Name))
-            .ForMember(dest => dest.Value, opts => opts.MapFrom(src => src.Slug));
+            .ForMember(dest => dest.Value, opts => opts.MapFrom(src => src.Slug))
+            .ForMember(dest => dest.Title, opts => opts.MapFrom(src => src.Name));
+
+            cfg.CreateMap<Dungeon, DropDownItem>()
+            .ForMember(dest => dest.Text, opts => opts.MapFrom(src => src.Name))
+            .ForMember(dest => dest.Value, opts => opts.MapFrom(src => src.Slug))
+            .ForMember(dest => dest.Title, opts => opts.MapFrom(src => src.ShortName));
 
         });
 

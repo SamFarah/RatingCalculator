@@ -15,6 +15,7 @@ public class KeyRunViewModel
     {
         get
         {
+            if (TimeLimit == 0) return "N/A";
             var timespan = TimeSpan.FromMilliseconds(TimeLimit);
             return timespan.ToString(@"hh\:mm\:ss");
         }
@@ -23,6 +24,7 @@ public class KeyRunViewModel
     {
         get
         {
+            if (ClearTimeMs == 0) return "N/A";
             var timespan = TimeSpan.FromMilliseconds(ClearTimeMs);
             return timespan.ToString(@"hh\:mm\:ss");
         }
@@ -51,7 +53,7 @@ public class KeyRunViewModel
     {
         get
         {
-
+            if (TimeLimit == 0) return "N/A";
             if (ClearTimeMs > TimeLimit) // over
             {
                 return $"<span class='text-danger'>over by {OverUnderTime}</span>";

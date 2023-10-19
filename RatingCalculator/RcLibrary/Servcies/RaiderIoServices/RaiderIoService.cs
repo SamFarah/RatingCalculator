@@ -51,7 +51,7 @@ public class RaiderIoService : IRaiderIoService
     }
 
     public async Task<List<RatingColour>?> GetRatingColours(string seasonName)
-    {
+    {        
         var qsParams = new Dictionary<string, string>() { { "season", seasonName } };
         var endpoint = new Uri(QueryHelpers.AddQueryString("mythic-plus/score-tiers", qsParams), UriKind.Relative);
         try
@@ -61,7 +61,7 @@ public class RaiderIoService : IRaiderIoService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting static data from raider.io:{errorMessage}", ex.Message);
+            _logger.LogError(ex, "Error getting rating colours data from raider.io:{errorMessage}", ex.Message);
             return null;
         }
     }
@@ -78,21 +78,21 @@ public class RaiderIoService : IRaiderIoService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting static data from raider.io:{errorMessage}", ex.Message);
+            _logger.LogError(ex, "Error getting dungeon time limits data from raider.io:{errorMessage}", ex.Message);
             return 0;
         }
-    }
+    }   
 
-    public async Task<Season?> GetWowCurrentSeason(string region)
-    {
+    public async Task<List<Season>?> GetRegionSeasons(string region)
+    {     
         var qsParams = new Dictionary<string, string>() { { "expansion_id", _config.ExpansionId.ToString() } };
         var endpoint = new Uri(QueryHelpers.AddQueryString("mythic-plus/static-data", qsParams), UriKind.Relative);
         try
         {
             var staticData = await _raiderIoApi.GetAsync<WowStaticData>(endpoint.ToString());
-            var currentDate = DateTime.UtcNow;
-            var season = staticData?.Seasons?.Where(x => x != null && currentDate >= x.Starts?[region] && (x.Ends?[region] == null || currentDate < x.Ends?[region])).FirstOrDefault();
-            return season;
+
+            var seasons = staticData?.Seasons?.Where(x => x != null && x.Starts?[region] != null).ToList();
+            return seasons;
         }
         catch (Exception ex)
         {
