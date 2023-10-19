@@ -1,10 +1,12 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Mvc;
 using MythicPlanner.Models;
 using RcLibrary.Models;
 using RcLibrary.Models.RaiderIoModels;
 using RcLibrary.Servcies.RatingCalculatorServices;
 using System.Diagnostics;
+using System.Diagnostics.Eventing.Reader;
 
 namespace MythicPlanner.Controllers;
 
@@ -23,19 +25,17 @@ public class HomeController : Controller
         _logger = logger;
     }
 
-
-    private async Task GetSeasonView()
+    private async Task GetExpansionView()
     {
-        var seasons = await _ratingCalculator.GetRegionSeasonsAsync("us");
-        var currentSeason = await _ratingCalculator.GetWowCurrentSeason("us");
-        ViewBag.seasonSlug = currentSeason?.Slug;
-        ViewBag.seasons = seasons?.Select(x => new { Text = x.Name, Value = x.Slug, Selected = (x.Slug == currentSeason?.Slug) }).ToList();
+        var exps = await _ratingCalculator.GetWowExpansionsAsync("us");
+        var currentExpId = exps?.Max(x => x.Id);
+        ViewBag.expansions = exps?.Select(x => new { Text = x.Name, Value = x.Id, Selected = (x.Id == currentExpId) }).ToList();
     }
- 
+
 
     public async Task<IActionResult> Index()
     {
-        await GetSeasonView();        
+        await GetExpansionView();
         ViewBag.dungeonMatrix = _ratingCalculator.GetDungeonMetrics();
         return View();
     }
@@ -44,7 +44,8 @@ public class HomeController : Controller
     {
         if (ModelState.IsValid)
         {
-            var toon = await _ratingCalculator.ProcessCharacter(m.SeasonSlug,
+            var toon = await _ratingCalculator.ProcessCharacter(m.ExpansionId,
+                                                                m.SeasonSlug,
                                                                 (m.Region ?? Enums.Regions.US).ToString().ToLower(),
                                                                 m.Realm,
                                                                 m.CharacterName,
@@ -61,18 +62,41 @@ public class HomeController : Controller
         return BadRequest($"<ul class='error-list'>{string.Join(string.Empty, ModelState.Values.SelectMany(v => v.Errors).Select(x => $"<li>{x.ErrorMessage}</li>"))}</ul>");
     }
 
-    public async Task<IActionResult> GetRealms(Enums.Regions region)
+    public async Task<IActionResult> GetRealms(Enums.Regions id)
     {
-        var output = _mapper.Map<List<DropDownItem>>(await _ratingCalculator.GetRegionRealmsAsync(region.ToString()));
+        var output = _mapper.Map<List<DropDownItem>>(await _ratingCalculator.GetRegionRealmsAsync(id.ToString()));
         return Json(output);
     }
 
-    public async Task<IActionResult> GetDungeons(string seasonSlug)
-    {                
-        var output = _mapper.Map<List<DropDownItem>>( (await _ratingCalculator.GetSeason("us", seasonSlug))?.Dungeons);
+    public async Task<IActionResult> GetSeasons(int id)
+    {        
+        var seasons = await _ratingCalculator.GetRegionSeasonsAsync("us", id);
+        if (seasons == null || !seasons.Any() ) return Json(null);
+        var currentSeason = await _ratingCalculator.GetWowCurrentSeason("us", id);
+        if (currentSeason == null)
+        {
+            seasons.First().Current = true;            
+        }
+        else
+        {
+            seasons?.ForEach(x => x.Current = x.Slug == currentSeason?.Slug);
+        }
+
+        
+        var output = _mapper.Map<List<DropDownItem>>(seasons);
+        return Json(output);
+        //ViewBag.seasons = seasons?.Select(x => new { Text = x.Name, Value = x.Slug, Selected = (x.Slug == currentSeason?.Slug) }).ToList();
+    }
+
+    public async Task<IActionResult> GetDungeons(string id)
+    {        
+        var filter = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic>(id);
+        var Season = (string)(filter?.Season ?? "");
+        var expId = (int)(filter?.Expansion);
+        var output = _mapper.Map<List<DropDownItem>>((await _ratingCalculator.GetSeason("us", Season, expId))?.Dungeons);
         return Json(output);
     }
-    
+
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()

@@ -32,10 +32,10 @@
                     success: function (result) { $("#CharInfoDiv").html(result); },
                     error: function (xhr) {
                         $("#CharInfoDiv").html(`<div class="alert alert-danger " role="alert">
-                                                                        <div>
-                                                                            ${xhr.responseText}
-                                                                        </div>
-                                                                    </div>`);
+                                                                                                <div>
+                                                                                                    ${xhr.responseText}
+                                                                                                </div>
+                                                                                            </div>`);
                     }
                 });
 
@@ -43,101 +43,81 @@
         });
 
         $(function () {
+            var regionSelect = $('#@(Html.NameFor(m => m.Region))');
             var realmSelect = $('#@(Html.NameFor(m => m.Realm))');
+            var expansionSelect = $('#@(Html.NameFor(m => m.ExpansionId))');
+            var seasonSelect = $('#@(Html.NameFor(m => m.SeasonSlug))');
             var dungSelect = $('#@(Html.NameFor(m => m.AvoidDungeon))');
-            // function populateRealmSelect(items) {
-            //     realmSelect.html('');
-            //     realmSelect.append('<option value="" disabled>Select one--</option>');
-
-            //     items.forEach(function (item) {
-            //         var optionData = '<option value="' + item.value + '">' + item.text + '</option>';
-            //         realmSelect.append(optionData);
-            //     });
-
-            //     realmSelect.selectpicker('destroy');
-            //     realmSelect.selectpicker('render');
-            // };
 
             function populateSelect(select, items) {
                 select.html('');
-                select.append('<option value="" disabled>Select one--</option>');
+                //select.append('<option value="" disabled>Select one--</option>');
+
+                var selectedVal = "";
 
                 items.forEach(function (item) {
+                    if (item.selected) selectedVal = item.value;
                     var optionData = '<option value="' + item.value + '" title="' + item.title + '">' + item.text + '</option>';
                     select.append(optionData);
                 });
 
                 select.selectpicker('destroy');
+                if (selectedVal !== "") select.selectpicker('val', selectedVal);
                 select.selectpicker('render');
             };
 
-            
-
-            function GetRealmsSelectItems(region) {
+            function GetSelectItems(action, id, select, finishCallBack) {
                 $.ajax({
-                    url: '/@ViewContext.RouteData.Values["controller"]/GetRealms',
+                    url: '/@ViewContext.RouteData.Values["controller"]/' + action,
                     type: 'GET',
                     datatype: 'JSON',
-                    data: { region },
+                    data: { id },
                     beforeSend: function () {
-                        $('#RealmLoad').show();
-                        realmSelect.selectpicker('hide')
-
+                        $('#Load' + action).show();
+                        select.selectpicker('hide')
                     },
                     complete: function () {
-                        realmSelect.selectpicker('show');
-                        $('#RealmLoad').hide();
-                        realmSelect.selectpicker('render')
-
+                        select.selectpicker('show');
+                        $('#Load' + action).hide();
+                        select.selectpicker('render');
+                        if (finishCallBack !== undefined) finishCallBack();
                     },
-                    success: function (data) { populateSelect(realmSelect,data); }
+                    success: function (data) { populateSelect(select, data); }
                 });
 
             }
-
-            function GetDungoenSelectItems(seasonSlug) {
-                $.ajax({
-                    url: '/@ViewContext.RouteData.Values["controller"]/GetDungeons',
-                    type: 'GET',
-                    datatype: 'JSON',
-                    data: { seasonSlug },
-                    beforeSend: function () {
-                        $('#DungeonLoad').show();
-                        dungSelect.selectpicker('hide')
-
-                    },
-                    complete: function () {
-                        dungSelect.selectpicker('show');
-                        $('#DungeonLoad').hide();
-                        dungSelect.selectpicker('render')
-
-                    },
-                    success: function (data) { populateSelect(dungSelect, data); }
-                });
-
-            }
-
-           
-
-            var regionSelect = $('#@(Html.NameFor(m => m.Region))');
-            var seasonSelect = $('#@(Html.NameFor(m => m.SeasonSlug))');
-
 
 
             //Dropdownlist Selectedchange event
             regionSelect.change(function () {
                 var selectedRegion = this.options[this.selectedIndex].value;
-                GetRealmsSelectItems(selectedRegion);                
+                GetSelectItems('GetRealms', selectedRegion, realmSelect);
+            });
+
+            expansionSelect.change(function () {
+                var selectedExp = this.options[this.selectedIndex].value;                
+                GetSelectItems('GetSeasons', selectedExp, seasonSelect, function () {
+                    var selectedSeason = seasonSelect.val();
+                    GetSelectItems('GetDungeons', JSON.stringify({ Season: selectedSeason, Expansion: selectedExp }), dungSelect);
+                });
             });
 
             seasonSelect.change(function () {
+                var selectedExp = expansionSelect.val();
                 var selectedSeason = this.options[this.selectedIndex].value;
-                GetDungoenSelectItems(selectedSeason);
+                GetSelectItems('GetDungeons', JSON.stringify({ Season: selectedSeason, Expansion: selectedExp }), dungSelect);
             });
 
 
-            GetRealmsSelectItems(regionSelect.val());
-            GetDungoenSelectItems('@ViewBag.seasonSlug');
+            GetSelectItems('GetRealms', regionSelect.val(), realmSelect);
+            GetSelectItems('GetSeasons', expansionSelect.val(), seasonSelect, function () {
+                GetSelectItems('GetDungeons', JSON.stringify({ Season: seasonSelect.val(), Expansion: expansionSelect.val() }), dungSelect);
+            });
+
+
+
+
+
 
         });
     </script>
@@ -163,7 +143,7 @@
                         <Label asp-for="Realm" class="mb-1 form-label"></Label>
                         @* <input asp-for="Realm" class="form-control" data-bs-theme="light" /> *@
 
-                        <div id="RealmLoad" class="dropdown bootstrap-select disabled form-control" style="display:none">
+                        <div id="LoadGetRealms" class="dropdown bootstrap-select disabled form-control" style="display:none">
                             <button type="button" tabindex="-1" class="btn dropdown-toggle bs-placeholder disabled btn-light" data-bs-toggle="dropdown" role="combobox" aria-owns="bs-select-3" aria-haspopup="listbox" aria-expanded="false" aria-disabled="true">
                                 <div>
                                     <span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span class="ms-2">Loading Realms...</span>
@@ -198,15 +178,29 @@
                 </div>
 
                 <div class="row mb-3">
-                    <div class="col">
-                        <Label asp-for="SeasonSlug" class="mb-1 form-label"></Label>        
-                        <select asp-for="SeasonSlug" class="selectpicker form-control" data-live-search="true" required
-                                title="Select Season" data-size="5">
-                            @foreach (var item in ViewBag.seasons)
+                    <div class="col-6">
+                        <Label asp-for="ExpansionId" class="mb-1 form-label"></Label>
+                        <select asp-for="ExpansionId" class="selectpicker form-control" data-live-search="true" required
+                                title="Select Expansion" data-size="5">
+                            @foreach (var item in ViewBag.expansions)
                             {
                                 <option value="@item.Value" selected="@item.Selected">@item.Text</option>
                             }
                         </select>
+
+                    </div>
+                    <div class="col-6">
+                        <Label asp-for="SeasonSlug" class="mb-1 form-label"></Label>
+                        <div id="LoadGetSeasons" class="dropdown bootstrap-select disabled form-control" style="display:none">
+                            <button type="button" tabindex="-1" class="btn dropdown-toggle bs-placeholder disabled btn-light" data-bs-toggle="dropdown" role="combobox" aria-owns="bs-select-3" aria-haspopup="listbox" aria-expanded="false" aria-disabled="true">
+                                <div>
+                                    <span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span class="ms-2">Loading Seasons...</span>
+                                </div>
+                            </button>
+                        </div>
+                        <select asp-for="SeasonSlug" class="selectpicker form-control" data-live-search="true" required
+                                title="Select Season" data-size="5"></select>
+
 
                     </div>
                 </div>
@@ -215,7 +209,7 @@
                     <div class="col-8">
 
                         <Label asp-for="AvoidDungeon" class="mb-1 form-label"></Label>
-                        <div id="DungeonLoad" class="dropdown bootstrap-select disabled form-control" style="display:none">
+                        <div id="LoadGetDungeons" class="dropdown bootstrap-select disabled form-control" style="display:none">
                             <button type="button" tabindex="-1" class="btn dropdown-toggle bs-placeholder disabled btn-light" data-bs-toggle="dropdown" role="combobox" aria-owns="bs-select-3" aria-haspopup="listbox" aria-expanded="false" aria-disabled="true">
                                 <div>
                                     <span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span class="ms-2">Loading Dungeons...</span>
@@ -224,7 +218,7 @@
                         </div>
                         <select asp-for="AvoidDungeon" class="selectpicker form-control"
                                 multiple data-actions-box="true"
-                                title="Dont avoid any dungeons" ></select>                                                       
+                                title="Dont avoid any dungeons"></select>
                     </div>
                     <div class="col-4 position-relative">
                         <Label asp-for="MaxKeyLevel" class="mb-1 form-label"></Label>

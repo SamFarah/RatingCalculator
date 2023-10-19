@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using System.Transactions;
 
 namespace RcLibrary.Models.RaiderIoModels;
 
@@ -25,5 +26,5 @@ public class Season
     [JsonProperty(PropertyName = "ends")]
     public Dictionary<string, DateTime?>? Ends { get; set; }
 
-
+    public bool Current { get; set; } = false;
 }

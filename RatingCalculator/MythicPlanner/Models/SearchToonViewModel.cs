@@ -36,4 +36,7 @@ public class SearchToonViewModel
 
     [Display(Name ="Season")]
     public string SeasonSlug { get; set; } = string.Empty;
+
+    [Display(Name ="Expansion")]
+    public int ExpansionId { get; set; } = 0;
 }

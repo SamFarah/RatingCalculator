@@ -51,7 +51,7 @@ public class RaiderIoService : IRaiderIoService
     }
 
     public async Task<List<RatingColour>?> GetRatingColours(string seasonName)
-    {        
+    {
         var qsParams = new Dictionary<string, string>() { { "season", seasonName } };
         var endpoint = new Uri(QueryHelpers.AddQueryString("mythic-plus/score-tiers", qsParams), UriKind.Relative);
         try
@@ -81,17 +81,18 @@ public class RaiderIoService : IRaiderIoService
             _logger.LogError(ex, "Error getting dungeon time limits data from raider.io:{errorMessage}", ex.Message);
             return 0;
         }
-    }   
+    }
 
-    public async Task<List<Season>?> GetRegionSeasons(string region)
-    {     
-        var qsParams = new Dictionary<string, string>() { { "expansion_id", _config.ExpansionId.ToString() } };
+
+    public async Task<List<Season>?> GetRegionSeasons(string region, int expId)
+    {
+        var qsParams = new Dictionary<string, string>() { { "expansion_id", expId.ToString() } };
         var endpoint = new Uri(QueryHelpers.AddQueryString("mythic-plus/static-data", qsParams), UriKind.Relative);
         try
         {
             var staticData = await _raiderIoApi.GetAsync<WowStaticData>(endpoint.ToString());
 
-            var seasons = staticData?.Seasons?.Where(x => x != null && x.Starts?[region] != null).ToList();
+            var seasons = staticData?.Seasons?.Where(x => x != null && x.Starts?[region] != null).ToList();            
             return seasons;
         }
         catch (Exception ex)

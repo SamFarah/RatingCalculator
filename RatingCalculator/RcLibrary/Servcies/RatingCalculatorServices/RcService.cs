@@ -84,11 +84,11 @@ public class RcService : IRcService
 
 
 
-    public async Task<ProcessedCharacter?> ProcessCharacter(string seasonSlug, string region, string realm, string name, double targetRating, bool thisweekOnly, List<string>? avoidDungs, int? maxKeyLevel)
+    public async Task<ProcessedCharacter?> ProcessCharacter(int expId, string seasonSlug, string region, string realm, string name, double targetRating, bool thisweekOnly, List<string>? avoidDungs, int? maxKeyLevel)
     {
         _logger.LogInformation("Processing {characterName}-{region}-{realm} with target rating: {targetRating} for season {season}", name, region, realm, targetRating, seasonSlug);
 
-        var seasonInfo = await GetSeason(region, seasonSlug);
+        var seasonInfo = await GetSeason(region, seasonSlug, expId);
         if (seasonInfo == null) { return null; }
         var seasonName = seasonInfo.Slug ?? "";
 
@@ -368,9 +368,9 @@ public class RcService : IRcService
 
    
 
-    public async Task<Season?> GetSeason(string region, string slug)
+    public async Task<Season?> GetSeason(string region, string slug, int expId)
     {
-        return (await GetRegionSeasonsAsync(region))?.FirstOrDefault(x => x.Slug == slug);
+        return (await GetRegionSeasonsAsync(region, expId))?.FirstOrDefault(x => x.Slug == slug);
     }
 
     public List<DungeonMetrics> GetDungeonMetrics() => _dungeonMatrix;
@@ -382,19 +382,25 @@ public class RcService : IRcService
         return output;
     }
 
-    public async Task<List<Season>?> GetRegionSeasonsAsync(string region)
+    public async Task<List<Season>?> GetRegionSeasonsAsync(string region, int expId)
     {
-        var output = await _memoryCache.GetCachedValue($"Seasons{region}", () => _raiderIo.GetRegionSeasons(region));
+        var output = await _memoryCache.GetCachedValue($"Seasons{region}_{expId}", () => _raiderIo.GetRegionSeasons(region, expId));
         return output;
     }
 
-    public async Task<Season?> GetWowCurrentSeason(string region)
+    public async Task<Season?> GetWowCurrentSeason(string region, int expId)
     {
-        var seasons = await _memoryCache.GetCachedValue($"Seasons{region}", () => _raiderIo.GetRegionSeasons(region));
+        var seasons = await GetRegionSeasonsAsync(region, expId);
         var currentDate = DateTime.UtcNow;
         return seasons?.FirstOrDefault(x => x.Name != null
                                             && !x.Name.Contains('•') // no better way to select none PTR and other patch seasons
                                             && currentDate >= x.Starts?[region]
                                             && (x.Ends?[region] == null || currentDate < x.Ends?[region]));
+    }
+
+    public async Task<List<Expansion>?> GetWowExpansionsAsync(string region)
+    {      
+        var output = await _memoryCache.GetCachedValue($"Expansions{region}", () => _blizzard.GetExpansionsAsync(region));
+        return output;
     }
 }
