@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.Extensions.Logging;
+using RcLibrary.Helpers;
 using RcLibrary.Models;
 using RcLibrary.Models.BlizzardModels;
 using RcLibrary.Models.RaiderIoModels;
@@ -131,7 +132,7 @@ public class RcService : IRcService
                 }
             }
             double? ratingPerDung = targetRating / seasonInfo.Dungeons.Count;
-            double? maxScore = ratingPerDung;
+            //double? maxScore = ratingPerDung;
             SeasonDungoens = SeasonDungoens.OrderByDescending(x => x.Score).ToList();
             var runPool = new List<DungeonWithScores>();
 
@@ -139,7 +140,7 @@ public class RcService : IRcService
             {
                 if (dungeon.Score > ratingPerDung)
                 {
-                    if (dungeon.Score > maxScore) { maxScore = dungeon.Score; }
+                    //if (dungeon.Score > maxScore) { maxScore = dungeon.Score; }
                     var extraRating = (dungeon.Score - ratingPerDung) / seasonInfo.Dungeons.Count;
                     ratingPerDung -= extraRating;
                 }
@@ -150,6 +151,7 @@ public class RcService : IRcService
                         dungeon.TimeLimit = await _memoryCache.GetCachedValue($"{dungeon.Slug}TimeLimit{region}", () => _raiderIo.GetDungoenTimeLimit(region, seasonName, dungeon.Slug ?? ""));
                     }
                     if (avoidDungs == null || !avoidDungs.Contains(dungeon.Slug ?? "")) runPool.Add(dungeon);
+                    //if ((ratingPerDung* runPool.Count() ) > (targetRating - output.Rating.Value )) break; 
                 }
             }
 
@@ -174,8 +176,9 @@ public class RcService : IRcService
                     output.RunOptions.Add(anOptionList.Take(j + 1).ToList());
                 }
             }
-        }
 
+        }
+        output.RunOptions = output?.RunOptions?.Distinct(new KeyRunListComparer()).ToList();
         return output;
     }
 
@@ -265,7 +268,7 @@ public class RcService : IRcService
                         ClearTimeMs = (int)time,
                         Affixes = new List<Affix> { thisWeeksAffix },
                         OldScore = runPool[i].Score,
-                        NewScore = bestScore * 1.5 + altScore * 0.5
+                        NewScore = (GetDugneonScore(time.Value, runPool[i].TimeLimit, dungeonMetric.Level)) * 1.5 + altScore * 0.5
                     });
                 }
             }
@@ -312,6 +315,7 @@ public class RcService : IRcService
                         time = runPool[i].TimeLimit - runPool[i].TimeLimit * timePercent;
                     }
 
+                    bestScore = GetDugneonScore(time.Value, runPool[i].TimeLimit, dungeonMetric.Level);
                     var didThisWeek = false;
                     double newScore = 0;
                     if ((thisWeeksAffix.Id == 9 ? runPool[i].TyrScore ?? 0 : runPool[i].FortScore ?? 0) < bestScore)
@@ -366,7 +370,19 @@ public class RcService : IRcService
         return output;
     }
 
-   
+    public double GetDugneonScore(double time, double timeLimit, int level)
+    {
+        if (level > 20  && time > timeLimit ) level = 20;
+
+        var metric = _dungeonMatrix.FirstOrDefault(x => x.Level == level);
+        if (level > 30 && metric == null) metric = new DungeonMetrics() { Base = 240 + ((level - 30) * 7) };
+        if (metric == null) return 0;
+
+        var pt = Math.Abs((timeLimit - time) / timeLimit);
+        var corrededPt = Math.Min(pt, 0.4) * (time > timeLimit ? -1 : 1);
+        var rating = metric.Base + (corrededPt * 12.5) - (time > timeLimit ? 5 : 0);
+        return rating;
+    }
 
     public async Task<Season?> GetSeason(string region, string slug, int expId)
     {
@@ -399,7 +415,7 @@ public class RcService : IRcService
     }
 
     public async Task<List<Expansion>?> GetWowExpansionsAsync(string region)
-    {      
+    {
         var output = await _memoryCache.GetCachedValue($"Expansions{region}", () => _blizzard.GetExpansionsAsync(region));
         return output;
     }
