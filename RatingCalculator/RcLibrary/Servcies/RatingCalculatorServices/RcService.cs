@@ -20,15 +20,15 @@ public class RcService : IRcService
     private readonly ILogger<RcService> _logger;
     private readonly List<DungeonMetrics> _dungeonMatrix = new()
     {
-        new DungeonMetrics { Level = 2  , Base = 40 },
-        new DungeonMetrics { Level = 3  , Base = 45 },
-        new DungeonMetrics { Level = 4  , Base = 55 },
-        new DungeonMetrics { Level = 5  , Base = 60 },
-        new DungeonMetrics { Level = 6  , Base = 65 },
-        new DungeonMetrics { Level = 7  , Base = 75 },
-        new DungeonMetrics { Level = 8  , Base = 80 },
-        new DungeonMetrics { Level = 9  , Base = 85 },
-        new DungeonMetrics { Level = 10 , Base = 100},
+        new DungeonMetrics { Level = 2  , Base = 94 },
+        new DungeonMetrics { Level = 3  , Base = 101 },
+        new DungeonMetrics { Level = 4  , Base = 108 },
+        new DungeonMetrics { Level = 5  , Base = 125 },
+        new DungeonMetrics { Level = 6  , Base = 132 },
+        new DungeonMetrics { Level = 7  , Base = 139 },
+        new DungeonMetrics { Level = 8  , Base = 146 },
+        new DungeonMetrics { Level = 9  , Base = 153 },
+        new DungeonMetrics { Level = 10 , Base = 170},/*
         new DungeonMetrics { Level = 11 , Base = 107},
         new DungeonMetrics { Level = 12 , Base = 114},
         new DungeonMetrics { Level = 13 , Base = 121},
@@ -48,7 +48,7 @@ public class RcService : IRcService
         new DungeonMetrics { Level = 27 , Base = 219},
         new DungeonMetrics { Level = 28 , Base = 226},
         new DungeonMetrics { Level = 29 , Base = 233},
-        new DungeonMetrics { Level = 30 , Base = 240},
+        new DungeonMetrics { Level = 30 , Base = 240},*/
     };
 
     private readonly Affix _fortAffix = new()
@@ -185,20 +185,20 @@ public class RcService : IRcService
     private DungeonMetrics? GetDungeonMetrics(double bestScore)
     {
         DungeonMetrics? dungeonMetric;
-        if (bestScore > 245)
+        if (bestScore > 175)
         {
-            var theoreticalLevel = (int)((bestScore - 239) / 7.0) + 30; // to get a rating that requires a key higher than level 30, this will calculates the theoretical key
-                                                                        // level assuming that every level over 30 adds 7 base points
-                                                                        // i.e 240 base for 30, so 247 base for 31, and 254 base for 32, etc...
-                                                                        // not sure about this assumption though, since as of today (the 14th of september 2023)
-                                                                        // the highest key achieved is a 32,
-                                                                        // so i do not have enough data to test this assumption.
-                                                                        // on the other hand, can be a safe assumption since every key adds 7 base points to the one 
-                                                                        // before it starting from key level 11
+            var theoreticalLevel = (int)((bestScore - 100) / 7.0); // to get a rating that requires a key higher than level 30, this will calculates the theoretical key
+                                                                   // level assuming that every level over 30 adds 7 base points
+                                                                   // i.e 240 base for 30, so 247 base for 31, and 254 base for 32, etc...
+                                                                   // not sure about this assumption though, since as of today (the 14th of september 2023)
+                                                                   // the highest key achieved is a 32,
+                                                                   // so i do not have enough data to test this assumption.
+                                                                   // on the other hand, can be a safe assumption since every key adds 7 base points to the one 
+                                                                   // before it starting from key level 11
             dungeonMetric = new DungeonMetrics
             {
                 Level = theoreticalLevel,
-                Base = 240.0 + (theoreticalLevel - 30) * 7.0
+                Base = 70 + (theoreticalLevel * 7) + 30
             };
         }
         else dungeonMetric = _dungeonMatrix.Where(x => bestScore <= x.Max && (bestScore >= x.Base || bestScore <= x.Base - 5)).FirstOrDefault();
@@ -372,10 +372,10 @@ public class RcService : IRcService
 
     public double GetDugneonScore(double time, double timeLimit, int level)
     {
-        if (level > 20  && time > timeLimit ) level = 20;
+        if (level > 20 && time > timeLimit) level = 20;
 
         var metric = _dungeonMatrix.FirstOrDefault(x => x.Level == level);
-        if (level > 30 && metric == null) metric = new DungeonMetrics() { Base = 240 + ((level - 30) * 7) };
+        if (level > 10 && metric == null) metric = new DungeonMetrics() { Base = 70 + (level * 7) + (10 * (level >= 10 ? 3 : level >= 5 ? 2 : 1)) };
         if (metric == null) return 0;
 
         var pt = Math.Abs((timeLimit - time) / timeLimit);

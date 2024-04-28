@@ -29,7 +29,7 @@ public class SearchToonViewModel
     [Required]
     [Range(2, 50)]
     [Display(Name = "Max Level")]
-    public int? MaxKeyLevel { get; set; } = 30;
+    public int? MaxKeyLevel { get; set; } = 15;
 
     [Display(Name = "Get the rating this week")]
     public bool ThisWeekOnly { get; set; } = true;
