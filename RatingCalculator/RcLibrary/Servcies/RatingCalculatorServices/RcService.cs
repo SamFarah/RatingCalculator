@@ -187,21 +187,17 @@ public class RcService : IRcService
         DungeonMetrics? dungeonMetric;
         if (bestScore > 175)
         {
-            var theoreticalLevel = (int)((bestScore - 100) / 7.0); // to get a rating that requires a key higher than level 30, this will calculates the theoretical key
-                                                                   // level assuming that every level over 30 adds 7 base points
-                                                                   // i.e 240 base for 30, so 247 base for 31, and 254 base for 32, etc...
-                                                                   // not sure about this assumption though, since as of today (the 14th of september 2023)
-                                                                   // the highest key achieved is a 32,
-                                                                   // so i do not have enough data to test this assumption.
-                                                                   // on the other hand, can be a safe assumption since every key adds 7 base points to the one 
-                                                                   // before it starting from key level 11
+            var theoreticalLevel = (int)((bestScore - 100) / 7.0); // to get a rating that requires a key higher than level 10, this will calculates the theoretical key
+                                                                   // 70 + (key level * 7) + (number of affixes * 10)
+                                                                   // i.e 170 base for 10, so 177 base for 11, and 184 base for 12, etc...
+                                                                   // https://www.wowhead.com/guide/blizzard-mythic-plus-rating-score-in-game By JElmore                                                                                                                                       
             dungeonMetric = new DungeonMetrics
             {
                 Level = theoreticalLevel,
                 Base = 70 + (theoreticalLevel * 7) + 30
             };
         }
-        else dungeonMetric = _dungeonMatrix.Where(x => bestScore <= x.Max && (bestScore >= x.Base || bestScore <= x.Base - 5)).FirstOrDefault();
+        else dungeonMetric = _dungeonMatrix.Where(x => bestScore <= x.Max && bestScore >= x.Min).FirstOrDefault();
         return dungeonMetric;
     }
 
