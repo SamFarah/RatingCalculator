@@ -92,7 +92,7 @@ public class RaiderIoService : IRaiderIoService
         {
             var staticData = await _raiderIoApi.GetAsync<WowStaticData>(endpoint.ToString());
 
-            var seasons = staticData?.Seasons?.Where(x => x != null && x.Starts?[region] != null).Take(1).ToList();            
+            var seasons = staticData?.Seasons?.Where(x => x != null && x.Starts?[region] != null).Take(5).ToList();            
             return seasons;
         }
         catch (Exception ex)
