@@ -1,5 +1,5 @@
 ﻿@model SearchToonViewModel
-@section scripts{
+@section scripts {
     <script>
 
         function toggleLoading(show) {
@@ -32,10 +32,10 @@
                     success: function (result) { $("#CharInfoDiv").html(result); },
                     error: function (xhr) {
                         $("#CharInfoDiv").html(`<div class="alert alert-danger " role="alert">
-                                                                                                <div>
-                                                                                                    ${xhr.responseText}
-                                                                                                </div>
-                                                                                            </div>`);
+                                                                                                        <div>
+                                                                                                            ${xhr.responseText}
+                                                                                                        </div>
+                                                                                                    </div>`);
                     }
                 });
 
@@ -95,7 +95,7 @@
             });
 
             expansionSelect.change(function () {
-                var selectedExp = this.options[this.selectedIndex].value;                
+                var selectedExp = this.options[this.selectedIndex].value;
                 GetSelectItems('GetSeasons', selectedExp, seasonSelect, function () {
                     var selectedSeason = seasonSelect.val();
                     GetSelectItems('GetDungeons', JSON.stringify({ Season: selectedSeason, Expansion: selectedExp }), dungSelect);
@@ -246,6 +246,17 @@
 
                         </button>
 
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="d-grid gap-2">
+                        <div class="alert alert-danger" role="alert">
+                            <h4 class="alert-heading">Heads up:</h4>
+                            <p>
+                                Some of Raider.io API endpoints are down, which render this tool unusable until the API is back up.
+                                My apologies for any inconvenience this is causing, I understands its the start of the season and planning your keys is helpful at this time.
+                            </p>
+                        </div>
                     </div>
                 </div>
 
