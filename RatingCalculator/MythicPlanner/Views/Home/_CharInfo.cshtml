@@ -37,10 +37,10 @@
     <div class="col m-2">
 
         <span>
-            Mythic+ Rating: <span class="RatingBox" @($"style=color:{Model.Rating?.Colour}")>@Math.Round(Model.Rating?.Value??0,1)</span>
+            Mythic+ Rating: <span class="RatingBox" @($"style=color:{Model.Rating?.Colour}")>@Math.Round(Model.Rating?.Value ?? 0, 1)</span>
             @if (Model.Rating?.Value < Model.TargetRating?.Value)
             {
-                <i class="fa-solid fa-arrow-right"></i> <span class="RatingBox" @($"style=color:{Model.TargetRating?.Colour}")>@Math.Round(Model.TargetRating?.Value??0,1)</span>
+                <i class="fa-solid fa-arrow-right"></i> <span class="RatingBox" @($"style=color:{Model.TargetRating?.Colour}")>@Math.Round(Model.TargetRating?.Value ?? 0, 1)</span>
             }
         </span>
 
@@ -48,13 +48,13 @@
 </div>
 <div class="row">
     <div class="col">
-        
+
         @if (Model.Rating?.Value >= Model.TargetRating?.Value)
         {
             <div class="alert alert-success">You already have that rating</div>
         }
         else
-        {            
+        {
             if ((Model.RunOptions?.Count ?? 0) == 0)
             {
                 <div class="alert alert-warning">You cannot get to this target rating with the selected parameters, consider changing some of the options or lowering your target rating.</div>
@@ -80,14 +80,14 @@
                                     <tr>
                                         <th>Dungeon Name</th>
                                         <th>Level</th>
-                                        <th>Affix</th>
+                                        <th>Affixes</th>
                                         <th>Time Limit</th>
                                         <th>Complete In</th>
                                         <th>Rating Adjust</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var run in runOption.OrderBy(x => x.Affixes?.First()?.Id == Model.ThisWeekAffixId ? 0 : 1))
+                                    @foreach (var run in runOption)//.OrderBy(x => x.Affixes?.First()?.Id == Model.ThisWeekAffixId ? 0 : 1))
                                     {
                                         <tr>
                                             <td>@run.DungeonName</td>
@@ -108,7 +108,10 @@
                                                             @foreach (var affix in run.Affixes)
                                                             {
                                                                 <td>
-                                                                    <img src="@affix.IconUrl" alt="@affix.Name" title="@affix.Name" width="32" />
+                                                                    <a href="@affix.WowheadUrl" target="_blank">
+                                                                        <img src="@affix.IconUrl" alt="@affix.Name" title="<b>@affix.Name</b>: @affix.Description" width="32"
+                                                                             data-toggle="tooltip" data-placement="top" data-html="true" />
+                                                                    </a>
                                                                 </td>
                                                             }
                                                         </tr>

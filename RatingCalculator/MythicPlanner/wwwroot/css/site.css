@@ -99,3 +99,7 @@ body {
     border: solid 1px #353535;
     
 }
+
+.tooltip-inner{
+    text-align:left;    
+}

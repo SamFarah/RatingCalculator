@@ -50,7 +50,7 @@ public class HomeController : Controller
                                                                 m.Realm,
                                                                 m.CharacterName,
                                                                 m.TargetRating ?? 0,
-                                                                m.ThisWeekOnly,
+                                                               // m.ThisWeekOnly,
                                                                 m.AvoidDungeon,
                                                                 m.MaxKeyLevel);
 

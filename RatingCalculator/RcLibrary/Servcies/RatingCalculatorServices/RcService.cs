@@ -7,7 +7,6 @@ using RcLibrary.Models.RaiderIoModels;
 using RcLibrary.Servcies.BlizzardServices;
 using RcLibrary.Servcies.MemoryCacheServices;
 using RcLibrary.Servcies.RaiderIoServices;
-using static RcLibrary.Models.Enums;
 
 namespace RcLibrary.Servcies.RatingCalculatorServices;
 
@@ -18,56 +17,86 @@ public class RcService : IRcService
     private readonly IBlizzardService _blizzard;
     private readonly IMapper _mapper;
     private readonly ILogger<RcService> _logger;
+
+
     private readonly List<DungeonMetrics> _dungeonMatrix = new()
     {
-        new DungeonMetrics { Level = 2  , Base = 94 },
-        new DungeonMetrics { Level = 3  , Base = 101 },
-        new DungeonMetrics { Level = 4  , Base = 108 },
-        new DungeonMetrics { Level = 5  , Base = 125 },
-        new DungeonMetrics { Level = 6  , Base = 132 },
-        new DungeonMetrics { Level = 7  , Base = 139 },
-        new DungeonMetrics { Level = 8  , Base = 146 },
-        new DungeonMetrics { Level = 9  , Base = 153 },
-        new DungeonMetrics { Level = 10 , Base = 170},/*
-        new DungeonMetrics { Level = 11 , Base = 107},
-        new DungeonMetrics { Level = 12 , Base = 114},
-        new DungeonMetrics { Level = 13 , Base = 121},
-        new DungeonMetrics { Level = 14 , Base = 128},
-        new DungeonMetrics { Level = 15 , Base = 135},
-        new DungeonMetrics { Level = 16 , Base = 142},
-        new DungeonMetrics { Level = 17 , Base = 149},
-        new DungeonMetrics { Level = 18 , Base = 156},
-        new DungeonMetrics { Level = 19 , Base = 163},
-        new DungeonMetrics { Level = 20 , Base = 170},
-        new DungeonMetrics { Level = 21 , Base = 177},
-        new DungeonMetrics { Level = 22 , Base = 184},
-        new DungeonMetrics { Level = 23 , Base = 191},
-        new DungeonMetrics { Level = 24 , Base = 198},
-        new DungeonMetrics { Level = 25 , Base = 205},
-        new DungeonMetrics { Level = 26 , Base = 212},
-        new DungeonMetrics { Level = 27 , Base = 219},
-        new DungeonMetrics { Level = 28 , Base = 226},
-        new DungeonMetrics { Level = 29 , Base = 233},
-        new DungeonMetrics { Level = 30 , Base = 240},*/
+        new () { Level = 2  , Base = 165 },
+        new () { Level = 3  , Base = 180 },
+        new () { Level = 4  , Base = 205 },
+        new () { Level = 5  , Base = 220 },
+        new () { Level = 6  , Base = 235 },
+        new () { Level = 7  , Base = 265 },
+        new () { Level = 8  , Base = 280 },
+        new () { Level = 9  , Base = 295 },
+        new () { Level = 10 , Base = 320 },
+        new () { Level = 11 , Base = 335 },
+        new () { Level = 12 , Base = 350 },
     };
 
-    private readonly Affix _fortAffix = new()
+    private readonly List<Affix> _affixes = new()
     {
-        Id = 10,
-        Name = "Fortified",
-        Description = "Non-boss enemies have 20% more health and inflict up to 30% increased damage.",
-        IconUrl = "ability_toughness",
-        WowheadUrl = "https://wowhead.com/affix=10"
+        new ()
+        {
+            Id = 10,
+            Name = "Fortified",
+            Description = "Non-boss enemies have 20% more health and inflict up to 30% increased damage.",
+            IconUrl = "ability_toughness",
+        },
+        new()
+        {
+            Id = 9,
+            Name = "Tyrannical",
+            Description = "Bosses have 30% more health. Bosses and their minions inflict up to 15% increased damage.",
+            IconUrl = "achievement_boss_archaedas",
+        },
+        new()
+        {
+            Id = 148,
+            Name = "Xal'atath's Bargain: Ascendant",
+            Description = "While in combat, Xal'atath rains down orbs of cosmic energy that empower enemies or players.",
+            IconUrl = "inv_nullstone_cosmicvoid",
+        },
+        new()
+        {
+            Id = 158,
+            Name = "Xal'atath's Bargain: Voidbound",
+            Description = "While in combat, Xal'atath summons a Void Emissary that empowers nearby enemies. Upon defeating the Void Emissary, players will net themselves a +20% ability cooldown rate and +10% Critical Strike increase that lasts 20 seconds.",
+            IconUrl = "inv_cosmicvoid_buff",
+        },
+        new()
+        {
+            Id = 159,
+            Name = "Xal'atath's Bargain: Oblivion",
+            Description = "While in combat, Xal'atath manifests crystals from the void that can be absorbed by enemies or players.",
+            IconUrl = "spell_priest_void-blast",
+        },
+        new()
+        {
+            Id = 160,
+            Name = "Xal'atath's Bargain: Devour",
+            Description = "While in combat, Xal'atath tears open rifts that devour the essence of players.",
+            IconUrl = "inv_ability_voidweaverpriest_entropicrift",
+        },
+        new()
+        {
+            Id = 147,
+            Name = "Xal'atath's Guile",
+            Description = "Xal'atath betrays players, revoking her bargains and increasing the health and damage of enemies by 20%",
+            IconUrl = "ability_racial_chillofnight",
+        },
+        new()
+        {
+            Id = 152,
+            Name = "Challenger's Peril",
+            Description = "Dying subtracts 15 seconds from time remaining.",
+            IconUrl = "achievement_challengemode_everbloom_hourglass",
+        },
+
     };
 
-    private readonly Affix _tyrAffix = new()
-    {
-        Id = 9,
-        Name = "Tyrannical",
-        Description = "Bosses have 30% more health. Bosses and their minions inflict up to 15% increased damage.",
-        IconUrl = "achievement_boss_archaedas",
-        WowheadUrl = "https://wowhead.com/affix=9"
-    };
+
+
 
 
     public RcService(IMemoryCacheService memoryCache,
@@ -85,7 +114,7 @@ public class RcService : IRcService
 
 
 
-    public async Task<ProcessedCharacter?> ProcessCharacter(int expId, string seasonSlug, string region, string realm, string name, double targetRating, bool thisweekOnly, List<string>? avoidDungs, int? maxKeyLevel)
+    public async Task<ProcessedCharacter?> ProcessCharacter(int expId, string seasonSlug, string region, string realm, string name, double targetRating, List<string>? avoidDungs, int? maxKeyLevel)
     {
         _logger.LogInformation("Processing {characterName}-{region}-{realm} with target rating: {targetRating} for season {season}", name, region, realm, targetRating, seasonSlug);
 
@@ -93,22 +122,23 @@ public class RcService : IRcService
         if (seasonInfo == null) { return null; }
         var seasonName = seasonInfo.Slug ?? "";
 
-        var thisWeeksAffix = await _memoryCache.GetCachedValue($"WeeksAffix{region}", () => _raiderIo.GetCurrentBaseAffix(region));
+        //var thisWeeksAffix = await _memoryCache.GetCachedValue($"WeeksAffix{region}", () => _raiderIo.GetCurrentBaseAffix(region));
+
         var raiderIoToon = await _raiderIo.GetCharacter(region, realm, name, seasonName);
         var ratingColours = await _memoryCache.GetCachedValue($"RatingColours{region}_{seasonSlug}", () => _raiderIo.GetRatingColours(seasonName), checkNull: true);
 
         if (raiderIoToon == null) { return null; }
         var allBestPlayerRuns = new List<KeyRun>();
-        int FortAffixID = 10;
+        //int FortAffixID = 10;
         //double? maxObtainableDunScore = 490.0;
 
         if (raiderIoToon?.BestMythicRuns != null) allBestPlayerRuns.AddRange(raiderIoToon.BestMythicRuns);
-        if (raiderIoToon?.AlternateMythicRuns != null) allBestPlayerRuns.AddRange(raiderIoToon.AlternateMythicRuns);
+        // if (raiderIoToon?.AlternateMythicRuns != null) allBestPlayerRuns.AddRange(raiderIoToon.AlternateMythicRuns);
 
         ProcessedCharacter output = _mapper.Map<ProcessedCharacter>(raiderIoToon);
         output.TargetRating.Value = targetRating;
         output.TargetRating.Colour = ratingColours?.Where(x => targetRating >= x.Score).FirstOrDefault()?.RgbHex;
-        output.ThisWeekAffixId = thisWeeksAffix?.Id ?? 0;
+        //output.ThisWeekAffixId = thisWeeksAffix?.Id ?? 0;
         var selectedSeason = raiderIoToon?.MPlusSeasonScores?.Where(x => x.Season == seasonName).FirstOrDefault();
         if (selectedSeason?.Scores != null)
         {
@@ -124,11 +154,12 @@ public class RcService : IRcService
             foreach (var playerRun in allBestPlayerRuns)
             {
                 var currentDun = SeasonDungoens.Where(x => x.ChallengeModeId == playerRun.ChallengeModeId).FirstOrDefault();
-                if (currentDun != null && playerRun?.Affixes != null)
+                if (currentDun != null)
                 {
                     currentDun.TimeLimit = playerRun.TimeLimit;
-                    if (playerRun.Affixes.Where(x => x.Id == FortAffixID).ToList().Count > 0) currentDun.FortScore = playerRun.Rating;
-                    else currentDun.TyrScore = playerRun.Rating;
+                    currentDun.Score = playerRun.Rating;
+                    //if (playerRun.Affixes.Where(x => x.Id == FortAffixID).ToList().Count > 0) currentDun.FortScore = playerRun.Rating;
+                    //else currentDun.TyrScore = playerRun.Rating;
                 }
             }
             double? ratingPerDung = targetRating / seasonInfo.Dungeons.Count;
@@ -162,7 +193,7 @@ public class RcService : IRcService
 
                 var targetDungeonScore = (targetRating - (output.Rating.Value - runPool.Take(i).Sum(x => x.Score))) / i;
                 //if (targetDungeonScore > maxObtainableDunScore) continue;
-                var anOptionList = GetMinRuns(targetDungeonScore, runPool, i, thisWeeksAffix, thisweekOnly, maxKeyLevel ?? 30);
+                var anOptionList = GetMinRuns(targetDungeonScore, runPool, i, maxKeyLevel ?? 30);
                 if (anOptionList != null)
                 {
                     var j = 0;
@@ -170,9 +201,10 @@ public class RcService : IRcService
                     for (j = 0; j < anOptionList.Count; j++)
                     {
                         adjustSum += (anOptionList[j].NewScore ?? 0) - (anOptionList[j].OldScore ?? 0);
-                        if (adjustSum > targetRating - output.Rating.Value) { break; }
+                        if (adjustSum >= targetRating - output.Rating.Value) { break; }
 
                     }
+                    //if (adjustSum >= targetRating - output.Rating.Value) 
                     output.RunOptions.Add(anOptionList.Take(j + 1).ToList());
                 }
             }
@@ -182,201 +214,112 @@ public class RcService : IRcService
         return output;
     }
 
+    private List<KeyRun>? GetMinRuns(double? targetDungeonScore, List<DungeonWithScores> runPool, int runCount, int maxKeyLevel)
+    {
+        var output = new List<KeyRun>();
+        //double? nextDungoenTarget = targetDungeonScore;
+        for (int i = 0; i < runCount; i++)
+        {
+            var bestScore = (targetDungeonScore) ?? 0;
+
+            var dungeonMetric = GetDungeonMetrics(bestScore);
+            if (dungeonMetric != null)
+            {
+                if (dungeonMetric.Level > maxKeyLevel) return null;
+
+                double? time = 0;
+
+
+                if (bestScore < dungeonMetric.Base) // overtime
+                {
+
+                    var timePercent = Math.Min(0.4, (double)((dungeonMetric.Base - bestScore - 15) / 37.5));
+                    time = runPool[i].TimeLimit + runPool[i].TimeLimit * timePercent;
+                }
+                else // beat timer
+                {
+                    var timePercent = Math.Min(0.4, (double)((bestScore - dungeonMetric.Base) / 37.5));
+                    time = runPool[i].TimeLimit - runPool[i].TimeLimit * timePercent;
+                }
+                output.Add(new KeyRun
+                {
+                    DungeonName = runPool[i].Name,
+                    KeyLevel = dungeonMetric.Level,
+                    TimeLimit = runPool[i].TimeLimit,
+                    ClearTimeMs = (int)time,
+                    Affixes = GetDungoenAffixes(dungeonMetric.Level),
+                    OldScore = runPool[i].Score ?? 0,
+                    NewScore = (GetDugneonScore(time.Value, runPool[i].TimeLimit, dungeonMetric.Level))
+                });
+            }
+
+
+        }
+
+        return output;
+    }
+
+    private List<Affix> GetDungoenAffixes(int keyLevel)
+    {
+        var output = new List<Affix>();
+
+        // get weekly affix from raider.io -> currently it is broken, i will update again once its working
+
+        var weeklyL2Id = 0;
+        var weeklyL4Id = 0;
+
+
+        //------------------------------ Workaround Start ------------------------------
+
+        // until then check out this workaround, if its looks stupid but it works, its not stupid ok!
+        // delete me once raider.io affix endpoint is working
+
+        var seasonStartDate = new DateTime(2024, 09, 17);
+        var today = DateTime.Now.Date;
+        var numberOfWeeks = (int)((today - seasonStartDate).TotalDays / 7.0);
+        var l2AffixRotation = new List<int> { 148, 158, 159, 160 }; // assuming the smae order in https://www.wowhead.com/guide/mythic-plus-dungeons/the-war-within-season-1/overview
+
+        weeklyL2Id = l2AffixRotation[numberOfWeeks % 4];
+        weeklyL4Id = numberOfWeeks % 2 == 0 ? 9 : 10; // alternate 1 week tyr, one week fort
+
+        //------------------------------ Workaround End ------------------------------
+
+
+        if (keyLevel < 12) output.Add(_affixes.First(x => x.Id == weeklyL2Id)); //Xal'atath's whatever this week is, if key level is less than 12
+        if (keyLevel >= 4) output.Add(_affixes.First(x => x.Id == weeklyL4Id));
+        if (keyLevel >= 7) output.Add(_affixes.First(x => x.Id == 152));// Challenger's Peril
+        if (keyLevel >= 10) output.Add(_affixes.First(x => x.Id == (weeklyL4Id == 9 ? 10 : 9))); //  if the weekly is try then next one is fort, and vice versa            
+        if (keyLevel >= 12) output.Add(_affixes.First(x => x.Id == 147)); // Xal'atath's Guile Introduced
+
+        return output;
+    }
+
     private DungeonMetrics? GetDungeonMetrics(double bestScore)
     {
         DungeonMetrics? dungeonMetric;
-        if (bestScore > 175)
+        if (bestScore > 365)
         {
-            var theoreticalLevel = (int)((bestScore - 100) / 7.0); // to get a rating that requires a key higher than level 10, this will calculates the theoretical key
-                                                                   // 70 + (key level * 7) + (number of affixes * 10)
-                                                                   // i.e 170 base for 10, so 177 base for 11, and 184 base for 12, etc...
-                                                                   // https://www.wowhead.com/guide/blizzard-mythic-plus-rating-score-in-game By JElmore                                                                                                                                       
+            var theoreticalLevel = (int)((bestScore - 170) / 15.0); // to get a rating that requires a key higher than level 10, this will calculates the theoretical key
+                                                                    // 125 + (key level * 15) + (number of affixes * 10)+ (5 if it has 3 or more affiex... I THINK)                                                                                                                                        
             dungeonMetric = new DungeonMetrics
             {
                 Level = theoreticalLevel,
-                Base = 70 + (theoreticalLevel * 7) + 30
+                Base = 130 + (theoreticalLevel * 15) + 40
             };
         }
         else dungeonMetric = _dungeonMatrix.Where(x => bestScore <= x.Max && bestScore >= x.Min).FirstOrDefault();
         return dungeonMetric;
     }
 
-    private List<KeyRun>? GetMinRuns(double? targetDungeonScore, List<DungeonWithScores> runPool, int runCount, Affix? thisWeeksAffix, bool thisweekOnly, int maxKeyLevel)
-    {
-        if (thisWeeksAffix == null) { throw new Exception("Cant get this weeks affix"); }
-        var output = new List<KeyRun>();
-        double? nextDungoenTarget = targetDungeonScore;
-        for (int i = 0; i < runCount; i++)
-        {
-            if (thisweekOnly)
-            {
-                var altScore = (thisWeeksAffix.Id == 9 ? runPool[i].FortScore : runPool[i].TyrScore) ?? 0;
-                var bestScore = (nextDungoenTarget - altScore * 0.5) / 1.5 ?? 0;
-
-                var dungeonMetric = GetDungeonMetrics(bestScore);
-                if (dungeonMetric != null)
-                {
-                    if (dungeonMetric.Level > maxKeyLevel) return null;
-
-
-                    if (dungeonMetric.Level > 20 && bestScore < dungeonMetric.Base)
-                    {
-
-                        // if the chosen metric was to not time a 21+ then find the first level that at max gives us the score we need
-                        dungeonMetric = _dungeonMatrix.Where(x => bestScore <= x.Max).FirstOrDefault();
-                        if (dungeonMetric == null) return null;
-
-                        // if the score we need is still smaller than the max, then its ok to get a bit more rating than we needed
-                        if (bestScore < dungeonMetric.Base)
-                        {
-                            bestScore = dungeonMetric.Base;
-
-                            // since we went a bit higher on these dungeons, we need to adjust the next target Dugneon score to counter it                                
-                            var x = bestScore * 1.5 + altScore * 0.5 - targetDungeonScore;
-                            nextDungoenTarget -= x;
-                        }
-                    }
-                    else
-                    {
-                        // if no adjustments made this round, then go back to original target
-                        nextDungoenTarget = targetDungeonScore;
-                    }
-
-                    double? time = 0;
-
-
-                    if (bestScore < dungeonMetric.Base) // overtime
-                    {
-
-                        var timePercent = Math.Min(0.4, (double)((dungeonMetric.Base - bestScore - 5) / 12.5));
-                        time = runPool[i].TimeLimit + runPool[i].TimeLimit * timePercent;
-                    }
-                    else // beat timer
-                    {
-                        var timePercent = Math.Min(0.4, (double)((bestScore - dungeonMetric.Base) / 12.5));
-                        time = runPool[i].TimeLimit - runPool[i].TimeLimit * timePercent;
-                    }
-                    output.Add(new KeyRun
-                    {
-                        DungeonName = runPool[i].Name,
-                        KeyLevel = dungeonMetric.Level,
-                        TimeLimit = runPool[i].TimeLimit,
-                        ClearTimeMs = (int)time,
-                        Affixes = new List<Affix> { thisWeeksAffix },
-                        OldScore = runPool[i].Score,
-                        NewScore = (GetDugneonScore(time.Value, runPool[i].TimeLimit, dungeonMetric.Level)) * 1.5 + altScore * 0.5
-                    });
-                }
-            }
-            else
-            {
-                var bestScore = (nextDungoenTarget ?? 0) / 2;
-
-                var dungeonMetric = GetDungeonMetrics(bestScore);
-                if (dungeonMetric != null)
-                {
-                    if (dungeonMetric.Level > maxKeyLevel) return null;
-
-                    if (dungeonMetric.Level > 20 && bestScore < dungeonMetric.Base)
-                    {
-                        dungeonMetric = _dungeonMatrix.Where(x => bestScore <= x.Max).FirstOrDefault();
-                        if (dungeonMetric == null) return null;
-
-                        // if the score we need is still smaller than the max, then its ok to get a bit more rating than we needed
-                        if (bestScore < dungeonMetric.Base)
-                        {
-                            bestScore = dungeonMetric.Base;
-
-                            // since we went a bit higher on these dungeons, we need to adjust the next target Dugneon score to counter it                           
-                            var x = bestScore * 2 - targetDungeonScore;
-                            nextDungoenTarget -= x;
-                        }
-                    }
-                    else
-                    {
-                        // if no adjustments made this round, then go back to original target
-                        nextDungoenTarget = targetDungeonScore;
-                    }
-
-                    double? time = 0;
-
-                    if (bestScore < dungeonMetric.Base) // overtime
-                    {
-                        var timePercent = Math.Min(0.4, (double)((dungeonMetric.Base - bestScore - 5) / 12.5));
-                        time = runPool[i].TimeLimit + runPool[i].TimeLimit * timePercent;
-                    }
-                    else // beat timer
-                    {
-                        var timePercent = Math.Min(0.4, (double)((bestScore - dungeonMetric.Base) / 12.5));
-                        time = runPool[i].TimeLimit - runPool[i].TimeLimit * timePercent;
-                    }
-
-                    bestScore = GetDugneonScore(time.Value, runPool[i].TimeLimit, dungeonMetric.Level);
-                    var didThisWeek = false;
-                    double newScore = 0;
-                    if ((thisWeeksAffix.Id == 9 ? runPool[i].TyrScore ?? 0 : runPool[i].FortScore ?? 0) < bestScore)
-                    {
-                        didThisWeek = true;
-                        var forScore = thisWeeksAffix.Id == 9 ? runPool[i].FortScore ?? 0 : bestScore;
-                        var tyrScore = thisWeeksAffix.Id == 10 ? runPool[i].TyrScore ?? 0 : bestScore;
-                        newScore = Math.Max(forScore, tyrScore) * 1.5 + Math.Min(forScore, tyrScore) * 0.5;
-                        output.Add(new KeyRun
-                        {
-                            DungeonName = runPool[i].Name,
-                            KeyLevel = dungeonMetric.Level,
-                            TimeLimit = runPool[i].TimeLimit,
-                            ClearTimeMs = (int)time,
-                            Affixes = new List<Affix> { thisWeeksAffix },
-                            OldScore = runPool[i].Score,
-                            NewScore = newScore
-                        });
-                    }
-
-                    if ((thisWeeksAffix.Id == 10 ? runPool[i].TyrScore ?? 0 : runPool[i].FortScore ?? 0) < bestScore)
-                    {
-                        double? oldScore = runPool[i].Score;
-                        if (didThisWeek)
-                        {
-                            oldScore = newScore;
-                            newScore = 2 * bestScore;
-                        }
-                        else
-                        {
-
-                            var forScore = thisWeeksAffix.Id == 10 ? runPool[i].FortScore ?? 0 : bestScore;
-                            var tyrScore = thisWeeksAffix.Id == 9 ? runPool[i].TyrScore ?? 0 : bestScore;
-
-                            newScore = Math.Max(forScore, tyrScore) * 1.5 + Math.Min(forScore, tyrScore) * 0.5;
-                        }
-                        output.Add(new KeyRun
-                        {
-                            DungeonName = runPool[i].Name,
-                            KeyLevel = dungeonMetric.Level,
-                            TimeLimit = runPool[i].TimeLimit,
-                            ClearTimeMs = (int)time,
-                            Affixes = new List<Affix> { thisWeeksAffix.Id == 9 ? _fortAffix : _tyrAffix },
-                            OldScore = oldScore,
-                            NewScore = newScore
-                        });
-                    }
-                }
-            }
-        }
-
-        return output;
-    }
-
     public double GetDugneonScore(double time, double timeLimit, int level)
     {
-        if (level > 20 && time > timeLimit) level = 20;
-
         var metric = _dungeonMatrix.FirstOrDefault(x => x.Level == level);
-        if (level > 10 && metric == null) metric = new DungeonMetrics() { Base = 70 + (level * 7) + (10 * (level >= 10 ? 3 : level >= 5 ? 2 : 1)) };
+        if (level > 12 && metric == null) metric = new DungeonMetrics() { Base = (level >= 7 ? 130 : 125) + (level * 15) + (10 * (level >= 10 ? 4 : level >= 7 ? 3 : level >= 4 ? 2 : 1)) };
         if (metric == null) return 0;
 
         var pt = Math.Abs((timeLimit - time) / timeLimit);
         var corrededPt = Math.Min(pt, 0.4) * (time > timeLimit ? -1 : 1);
-        var rating = metric.Base + (corrededPt * 12.5) - (time > timeLimit ? 5 : 0);
+        var rating = metric.Base + (corrededPt * 37.5) - (time > timeLimit ? 15 : 0);
         return rating;
     }
 

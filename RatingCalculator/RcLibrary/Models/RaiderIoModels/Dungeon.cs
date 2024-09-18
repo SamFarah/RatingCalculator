@@ -22,16 +22,7 @@ public class Dungeon
 
 public class DungeonWithScores : Dungeon
 {
-    public double? FortScore { get; set; }
-    public double? TyrScore { get; set; }
-    public double? Score
-    {
-        get
-        {
-            return Math.Max(FortScore ?? 0, TyrScore ?? 0) * 1.5 + Math.Min(FortScore ?? 0, TyrScore ?? 0) * 0.5;
-        }
-    }
-
+    public double? Score { get; set; }   
     public int TimeLimit { get; set; }
 
 }

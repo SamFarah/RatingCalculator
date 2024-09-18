@@ -29,13 +29,16 @@
                     data: $('form').serialize(),
                     beforeSend: function () { toggleLoading(true); },
                     complete: function () { toggleLoading(false); },
-                    success: function (result) { $("#CharInfoDiv").html(result); },
+                    success: function (result) {
+                        $("#CharInfoDiv").html(result);
+                        $('[data-toggle="tooltip"]').tooltip({ html: true })
+                    },
                     error: function (xhr) {
                         $("#CharInfoDiv").html(`<div class="alert alert-danger " role="alert">
-                                                                                                        <div>
-                                                                                                            ${xhr.responseText}
-                                                                                                        </div>
-                                                                                                    </div>`);
+                                                <div>
+                                                    ${xhr.responseText}
+                                                </div>
+                                            </div>`);
                     }
                 });
 
@@ -228,7 +231,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="row mb-3">
+                @* <div class="row mb-3">
                     <div class="col">
                         <div class="form-check form-switch">
                             <input asp-for="ThisWeekOnly" class="form-check-input" checked="checked" />
@@ -236,7 +239,7 @@
                             <Label asp-for="ThisWeekOnly" class="form-check-label"></Label>
                         </div>
                     </div>
-                </div>
+                </div> *@
                 <div class="row mb-2">
                     <div class="d-grid gap-2">
                         <button type="submit" class="btn btn-primary">
@@ -248,17 +251,7 @@
 
                     </div>
                 </div>
-                <div class="row mb-2">
-                    <div class="d-grid gap-2">
-                        <div class="alert alert-danger" role="alert">
-                            <h4 class="alert-heading">Heads up:</h4>
-                            <p>
-                                Some of Raider.io API endpoints are down, which render this tool unusable until the API is back up.
-                                My apologies for any inconvenience this is causing, I understands its the start of the season and planning your keys is helpful at this time.
-                            </p>
-                        </div>
-                    </div>
-                </div>
+
 
                 @* <div class="row mb-3">
                 <div class="col">
@@ -281,7 +274,8 @@
 
         <div class="col mt-5" id="CharInfoDiv">
             <div>
-                <h3>How To Use:</h3>
+                <h3>How To Use:</h3>                
+
                 <p class="lead">
                     Start by entering your World of Warcraft&trade; character information on the left form:
                 </p>
@@ -345,6 +339,7 @@
                         </div>
 
                     </div>
+                    <span class="text-warning">Note: The above table was generated using some questionable analytics on a very limited number of datasets. Please keep in mind that it might not be 100% accurate.</span>
                 </p>
                 <p>
                     The "Base Score" in the above table represent the rating you would get if you finished the dungeon exactly on time. However, you will get more rating (up to the "Max Score" from the table) if you finish the
@@ -366,7 +361,7 @@
                 <p>
                     Using calculated percentage from Eq. 1, we can calculate the run's rating as follows: <br />
                     <div class="code eq" data-eqNo="Eq. 2">
-                        <var>Rating</var> = <var>Base<sub>level</sub> + (<var>P<sub>T</sub></var> * 12.5) </var>
+                        <var>Rating</var> = <var>Base<sub>level</sub> + (<var>P<sub>T</sub></var> * 37.5) </var>
                     </div>
                     <br /> where: <br />
                     <var>P<sub>T</sub></var> = The time percentage calculated in the previous step. <br />
@@ -375,7 +370,7 @@
 
                 <p>
                     For example:<br />
-                    if you ran a level 17 key. assuming the time limit for that dungeon is 33 minutes ( = 1980 seconds in total) and
+                    if you ran a level 7 key. assuming the time limit for that dungeon is 33 minutes ( = 1980 seconds in total) and
                     you completed it in 27mins and 47 seconds ( = 1667 seconds in total) then the rating for this run can be calculated as follows:<br />
                     <div class="code">
                         <var>P<sub>T</sub></var> = (1980 - 1667) / 1980 = 15.81%
@@ -384,18 +379,18 @@
                     Note that if the result was higher than 40% then we cap it at 40% <br />
 
                     Next step is to calculate the dungeon rating:<br />
-                    given that the key level was 17 in this example. we look up the base score to be 149 from the table above. <br />
+                    given that the key level was 7 in this example. we look up the base score to be 265 from the table above. <br />
                     and 15.81% = 15.81/100 = 0.1581 <br />
                     <div class="code">
-                        <var>Rating</var> = 149 + (0.1581 * 12.5) = 150.98 ≈ 151
+                        <var>Rating</var> = 265 + (0.1581 * 37.5) ≈ 270.9
                     </div>
                 </p>
 
                 <p>
-                    For calculating overtime runs, it's a very similar process, except, the moment the key is over time, 5 ratings is taken away from the base, and then the rest is taken away
+                    For calculating overtime runs, it's a very similar process, except, the moment the key is over time, 15 ratings is taken away from the base, and then the rest is taken away
                     depend on the time percentage: <br />
                     <div class="code eq" data-eqNo="Eq. 3">
-                        <var>Rating</var> = <var>Base<sub>level</sub> + (<var>P<sub>T</sub></var> * 12.5) - 5 </var>
+                        <var>Rating</var> = <var>Base<sub>level</sub> + (<var>P<sub>T</sub></var> * 37.5) - 15 </var>
                     </div><br />
                     Notes:
                     <ol>
@@ -405,15 +400,15 @@
                         <li>
                             If <var>P<sub>T</sub></var> > 40% then 0 rating is given to this dungeon
                         </li>
-                        <li>
+                       @*  <li>
                             If the key level is 21 or higher, then not timing it will use the base score for a level 20 key.
                             for example, if the key level is 26 and it was over the time limit then <var>Base<sub>20</sub></var> = 170 (and not 212) is used for the calculations
-                        </li>
+                        </li> *@
                     </ol>
 
                 </p>
 
-                <p>
+                @* <p>
                     All this is half the story. We cannot forget about the alternating weeks (Tyrannical and Fortified). For each dungeon, you will have 2 ratings, the best rating you got for Tyrannical
                     and another for Fortified. The way they are combined is as follows: <br />
                     <div class="code eq" data-eqNo="Eq. 4">
@@ -450,7 +445,7 @@
                     to get the total Mythic+ rating.
                 </p>
 
-                <p>Note that the best rating for each affix (Tyrannical and Fortified) for each dungeon is the one used for the final mythic rating.</p>
+                <p>Note that the best rating for each affix (Tyrannical and Fortified) for each dungeon is the one used for the final mythic rating.</p> *@
 
                 <p>
                     Using the above formulas, this tool applies them backwards. when you set a target rating. the tool fetches all your runs from raider.io and calculates what is the

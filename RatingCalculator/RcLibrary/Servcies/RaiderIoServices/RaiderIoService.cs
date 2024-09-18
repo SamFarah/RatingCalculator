@@ -116,5 +116,5 @@ public class RaiderIoService : IRaiderIoService
             _logger.LogError(ex, "Error getting static data from raider.io:{errorMessage}", ex.Message);
             return null;
         }
-    }
+    }    
 }

@@ -22,5 +22,5 @@ public class Affix
     }
 
     [JsonProperty(PropertyName = "wowhead_url")]
-    public string? WowheadUrl { get; set; }
+    public string? WowheadUrl => $"https://wowhead.com/affix={Id}";
 }
