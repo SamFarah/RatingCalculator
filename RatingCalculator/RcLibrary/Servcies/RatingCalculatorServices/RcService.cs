@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
 using RcLibrary.Helpers;
 using RcLibrary.Models;
@@ -40,14 +41,14 @@ public class RcService : IRcService
         {
             Id = 10,
             Name = "Fortified",
-            Description = "Non-boss enemies have 20% more health and inflict up to 30% increased damage.",
+            Description = "Non-boss enemies have 20% more health and inflict up to 20% increased damage.",
             IconUrl = "ability_toughness",
         },
         new()
         {
             Id = 9,
             Name = "Tyrannical",
-            Description = "Bosses have 30% more health. Bosses and their minions inflict up to 15% increased damage.",
+            Description = "Bosses have 25% more health. Bosses and their minions inflict up to 15% increased damage.",
             IconUrl = "achievement_boss_archaedas",
         },
         new()
@@ -193,7 +194,7 @@ public class RcService : IRcService
 
                 var targetDungeonScore = (targetRating - (output.Rating.Value - runPool.Take(i).Sum(x => x.Score))) / i;
                 //if (targetDungeonScore > maxObtainableDunScore) continue;
-                var anOptionList = GetMinRuns(targetDungeonScore, runPool, i, maxKeyLevel ?? 30);
+                var anOptionList = await GetMinRuns(targetDungeonScore, runPool, i, maxKeyLevel ?? 30, region);
                 if (anOptionList != null)
                 {
                     var j = 0;
@@ -214,7 +215,7 @@ public class RcService : IRcService
         return output;
     }
 
-    private List<KeyRun>? GetMinRuns(double? targetDungeonScore, List<DungeonWithScores> runPool, int runCount, int maxKeyLevel)
+    private async Task<List<KeyRun>?> GetMinRuns(double? targetDungeonScore, List<DungeonWithScores> runPool, int runCount, int maxKeyLevel, string region)
     {
         var output = new List<KeyRun>();
         //double? nextDungoenTarget = targetDungeonScore;
@@ -247,49 +248,62 @@ public class RcService : IRcService
                     KeyLevel = dungeonMetric.Level,
                     TimeLimit = runPool[i].TimeLimit,
                     ClearTimeMs = (int)time,
-                    Affixes = GetDungoenAffixes(dungeonMetric.Level),
+                    Affixes = await GetDungoenAffixes(dungeonMetric.Level, region),
                     OldScore = runPool[i].Score ?? 0,
                     NewScore = (GetDugneonScore(time.Value, runPool[i].TimeLimit, dungeonMetric.Level))
                 });
             }
-
-
         }
 
         return output;
     }
 
-    private List<Affix> GetDungoenAffixes(int keyLevel)
+    private async Task<(int l2id, int l4id)> GetWWRotatingAffixIds(string region)
+    {
+        var l2ids = new List<int> { 148, 158, 159, 160 }; // all the Xal'atath's Bargain affixes
+        var l4ids = new List<int> { 9, 10 }; // Tyrannical, Fortified
+
+        try
+        {
+            var affixes = await _raiderIo.GetWeeklyAffixes(region) ?? throw new Exception("raider.io returned null for affixes");
+            var l2Id = affixes.FirstOrDefault(x => l2ids.Contains(x.Id))?.Id ?? throw new Exception("raider.io did not return l2 affix");
+            var l4id = affixes.FirstOrDefault(x => l4ids.Contains(x.Id))?.Id ?? throw new Exception("raider.io did not return l4 affix");// asuming the first one between tyr and fort that appear in the list is the l4 one
+            return (l2Id, l4id);
+
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting l2/l4 affix Id's from raider.io: {errorMessage}, reverting to manual mode", ex.Message);
+
+            //------------------------------ Workaround Start ------------------------------
+            // if raider.io failed getting affiex, get them with this if it looks stupid but it works, its not stupid ok!
+            // its not accurate but it gets something
+
+            var seasonStartDate = new DateTime(2024, 09, 17);
+            var today = DateTime.Now.Date;
+            var numberOfWeeks = (int)((today - seasonStartDate).TotalDays / 7.0);
+            var l2AffixRotation = new List<int> { 148, 158, 159, 160 }; // assuming the smae order in https://www.wowhead.com/guide/mythic-plus-dungeons/the-war-within-season-1/overview
+
+            var weeklyL2Id = l2AffixRotation[numberOfWeeks % 4];
+            var weeklyL4Id = numberOfWeeks % 2 == 0 ? 9 : 10; // alternate 1 week tyr, one week fort
+
+            //------------------------------ Workaround End ------------------------------
+            return (weeklyL2Id, weeklyL4Id);
+        }
+    }
+
+    private async Task<List<Affix>> GetDungoenAffixes(int keyLevel, string region)
     {
         var output = new List<Affix>();
 
-        // get weekly affix from raider.io -> currently it is broken, i will update again once its working
-
-        var weeklyL2Id = 0;
-        var weeklyL4Id = 0;
-
-
-        //------------------------------ Workaround Start ------------------------------
-
-        // until then check out this workaround, if its looks stupid but it works, its not stupid ok!
-        // delete me once raider.io affix endpoint is working
-
-        var seasonStartDate = new DateTime(2024, 09, 17);
-        var today = DateTime.Now.Date;
-        var numberOfWeeks = (int)((today - seasonStartDate).TotalDays / 7.0);
-        var l2AffixRotation = new List<int> { 148, 158, 159, 160 }; // assuming the smae order in https://www.wowhead.com/guide/mythic-plus-dungeons/the-war-within-season-1/overview
-
-        weeklyL2Id = l2AffixRotation[numberOfWeeks % 4];
-        weeklyL4Id = numberOfWeeks % 2 == 0 ? 9 : 10; // alternate 1 week tyr, one week fort
-
-        //------------------------------ Workaround End ------------------------------
-
+        // get weekly affix from raider.io 
+        var (weeklyL2Id, weeklyL4Id) = await _memoryCache.GetCachedValue($"l2l4affixes_{region}", () => GetWWRotatingAffixIds(region));
 
         if (keyLevel < 12) output.Add(_affixes.First(x => x.Id == weeklyL2Id)); //Xal'atath's whatever this week is, if key level is less than 12
         if (keyLevel >= 4) output.Add(_affixes.First(x => x.Id == weeklyL4Id));
         if (keyLevel >= 7) output.Add(_affixes.First(x => x.Id == 152));// Challenger's Peril
         if (keyLevel >= 10) output.Add(_affixes.First(x => x.Id == (weeklyL4Id == 9 ? 10 : 9))); //  if the weekly is try then next one is fort, and vice versa            
-        if (keyLevel >= 12) output.Add(_affixes.First(x => x.Id == 147)); // Xal'atath's Guile Introduced
+        if (keyLevel >= 12) output.Add(_affixes.First(x => x.Id == 147)); // Xal'atath's Guile 
 
         return output;
     }

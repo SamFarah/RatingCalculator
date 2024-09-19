@@ -17,7 +17,7 @@ html {
     min-height: 100%;
 }
 
-body {    
+body {
     padding-bottom: 100px;
 }
 
@@ -79,7 +79,7 @@ body {
     border-radius: 10%;
     padding: 5px;
     padding-bottom: 5px;
-    padding-top: 2px;    
+    padding-top: 2px;
     margin-left: 50px;
     background-color: #353535;
 }
@@ -89,17 +89,29 @@ body {
     margin-bottom: 0;
 }
 
-.actions-btn{
-    border:solid 1px #353535;
-    background-color:var(--bs-body-bg);
+.actions-btn {
+    border: solid 1px #353535;
+    background-color: var(--bs-body-bg);
     color: var(--bs-body-color);
 }
 
-.actions-btn:hover {
-    border: solid 1px #353535;
-    
+    .actions-btn:hover {
+        border: solid 1px #353535;
+    }
+
+.tooltip-inner {
+    text-align: left;
 }
 
-.tooltip-inner{
-    text-align:left;    
+.glow-img-blue {
+    border: 1px solid #000000;
+    box-shadow: 0 0 13px 2px #69f;
+    border-radius: 6px;
 }
+
+.glow-img-red {
+    border: 1px solid #000000;
+    box-shadow: 0 0 13px 2px #e02929;
+    border-radius: 6px;
+}
+

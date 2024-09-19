@@ -2,9 +2,9 @@
 
 <div class="row">
     <div style="width:110px">
-        <img src="@Model.ThumbnailUrl" alt="@Model.Name" width="100" />
+        <img src="@Model.ThumbnailUrl" alt="@Model.Name" width="100" class="@( Model.Faction switch{"alliance"=>"glow-img-blue","horde"=>"glow-img-red",_=>string.Empty})" />
     </div>
-    <div class="col-md-9">
+    <div class="col-md-9 ms-2">
         <div class="row">
             <span>
                 <span class="mb-0" @($"style=color:{Model.FactionColour};font-size:22px;font-weight:bold")>@Model.Name</span> &nbsp;
@@ -63,7 +63,7 @@
             {
                 <h5>Options: </h5>
                 var optionCounter = 0;
-                @foreach (var runOption in Model.RunOptions)
+                @foreach (var runOption in Model.RunOptions!)
                 {
                     @if (runOption.Count == 0) continue;
                     <div class="card mb-2">

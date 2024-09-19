@@ -92,7 +92,7 @@ public class RaiderIoService : IRaiderIoService
         {
             var staticData = await _raiderIoApi.GetAsync<WowStaticData>(endpoint.ToString());
 
-            var seasons = staticData?.Seasons?.Where(x => x != null && x.Starts?[region] != null).Take(5).ToList();            
+            var seasons = staticData?.Seasons?.Where(x => x != null && x.Starts?[region] != null).Take(5).ToList();
             return seasons;
         }
         catch (Exception ex)
@@ -113,8 +113,26 @@ public class RaiderIoService : IRaiderIoService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting static data from raider.io:{errorMessage}", ex.Message);
+            _logger.LogError(ex, "Error getting affixes from raider.io:{errorMessage}", ex.Message);
             return null;
         }
-    }    
+    }
+
+    public async Task<List<Affix>?> GetWeeklyAffixes(string region)
+    {        
+        var qsParams = new Dictionary<string, string>() { { "region", region } };
+        var endpoint = new Uri(QueryHelpers.AddQueryString("mythic-plus/affixes", qsParams), UriKind.Relative);
+        try
+        {
+            var staticData = await _raiderIoApi.GetAsync<WeeksAffixes>(endpoint.ToString());
+            return staticData?.Affixes;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting affixes from raider.io:{errorMessage}", ex.Message);
+            return null;
+        }
+    }
+
+    
 }
