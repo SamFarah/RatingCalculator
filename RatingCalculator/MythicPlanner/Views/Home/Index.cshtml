@@ -149,9 +149,8 @@
             var storedCharacterInfo = localStorage.getItem('characterInfo');
             if (storedCharacterInfo) {
                 var characterInfo = JSON.parse(storedCharacterInfo);
-                $("#Region").val(characterInfo.reagion);
-                $("#Realm").val(characterInfo.realm);
-                $("#Realm").selectpicker('refresh');
+                $("#Region").val(characterInfo.reagion);                
+                $("#Realm").selectpicker('val', characterInfo.realm);
                 $("#CharacterName").val(characterInfo.name);
                 $('#RememberMe').prop('checked', true);
                 $("#TargetRating").focus();
@@ -343,7 +342,7 @@
             <div>
                 <h3>Understanding the Results:</h3>
                 <p>
-                    Once you successfully enter the information and press submit, this tool will evaluate your current overall rating as well as your rating for each dungeon. with that information
+                    Once you successfully enter the information and press submit, this tool will evaluate your current overall rating as well as your rating for each dungeon. With that information
                     it will generate multiple options, from the hardest but fastest to the easiest but longest.
                 </p>
                 <p>
