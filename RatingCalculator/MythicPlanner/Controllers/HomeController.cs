@@ -1,12 +1,9 @@
 ﻿using AutoMapper;
-using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Mvc;
 using MythicPlanner.Models;
 using RcLibrary.Models;
-using RcLibrary.Models.RaiderIoModels;
 using RcLibrary.Servcies.RatingCalculatorServices;
 using System.Diagnostics;
-using System.Diagnostics.Eventing.Reader;
 
 namespace MythicPlanner.Controllers;
 
@@ -50,7 +47,7 @@ public class HomeController : Controller
                                                                 m.Realm,
                                                                 m.CharacterName,
                                                                 m.TargetRating ?? 0,
-                                                               // m.ThisWeekOnly,
+                                                                // m.ThisWeekOnly,
                                                                 m.AvoidDungeon,
                                                                 m.MaxKeyLevel);
 
@@ -69,27 +66,27 @@ public class HomeController : Controller
     }
 
     public async Task<IActionResult> GetSeasons(int id)
-    {        
+    {
         var seasons = await _ratingCalculator.GetRegionSeasonsAsync("us", id);
-        if (seasons == null || !seasons.Any() ) return Json(null);
+        if (seasons == null || !seasons.Any()) return Json(null);
         var currentSeason = await _ratingCalculator.GetWowCurrentSeason("us", id);
         if (currentSeason == null)
         {
-            seasons.First().Current = true;            
+            seasons.First().Current = true;
         }
         else
         {
             seasons?.ForEach(x => x.Current = x.Slug == currentSeason?.Slug);
         }
 
-        
+
         var output = _mapper.Map<List<DropDownItem>>(seasons);
         return Json(output);
         //ViewBag.seasons = seasons?.Select(x => new { Text = x.Name, Value = x.Slug, Selected = (x.Slug == currentSeason?.Slug) }).ToList();
     }
 
     public async Task<IActionResult> GetDungeons(string id)
-    {        
+    {
         var filter = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic>(id);
         var Season = (string)(filter?.Season ?? "");
         var expId = (int)(filter?.Expansion);

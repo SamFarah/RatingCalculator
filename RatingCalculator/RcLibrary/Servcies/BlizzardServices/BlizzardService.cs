@@ -7,7 +7,6 @@ using RcLibrary.Models.BlizzardModels;
 using RcLibrary.Models.Configurations;
 using RcLibrary.Servcies.MemoryCacheServices;
 using System.Text;
-using static RcLibrary.Models.Enums;
 
 namespace RcLibrary.Servcies.BlizzardServices;
 public class BlizzardService : IBlizzardService
@@ -106,7 +105,7 @@ public class BlizzardService : IBlizzardService
                 {
                     var output = new List<Expansion>();
                     var raiderId = 0;
-                    foreach (var tier in expJIndexResp.Tiers.Where(x=>x.Name != "Current Season").OrderBy(x => x.Id))
+                    foreach (var tier in expJIndexResp.Tiers.Where(x => x.Name != "Current Season").OrderBy(x => x.Id))
                     {
                         output.Add(new Expansion
                         {
@@ -115,7 +114,7 @@ public class BlizzardService : IBlizzardService
                         });
                     }
                     return output.Where(x => x.Id >= _config.OldestRaiderIOExpId).OrderByDescending(x => x.Id).ToList();
-                }                
+                }
             }
             catch (Exception ex)
             {

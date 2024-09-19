@@ -4,7 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace RcLibrary.Helpers;
 public class KeyRunListComparer : IEqualityComparer<List<KeyRun>>
-{    
+{
     public bool Equals(List<KeyRun>? x, List<KeyRun>? y)
     {
         if (x?.Count != y?.Count) return false;
@@ -15,12 +15,12 @@ public class KeyRunListComparer : IEqualityComparer<List<KeyRun>>
                 return false;
         }
         return true;
-    }    
+    }
 
     public int GetHashCode([DisallowNull] List<KeyRun> obj)
     {
         string unique = string.Empty;
-        obj?.ForEach(x => unique += $"{x?.KeyLevel}{x?.ClearTimeMs}{x?.DungeonShortName?.ToUpper()}");        
+        obj?.ForEach(x => unique += $"{x?.KeyLevel}{x?.ClearTimeMs}{x?.DungeonShortName?.ToUpper()}");
         return unique.GetHashCode();
     }
 }

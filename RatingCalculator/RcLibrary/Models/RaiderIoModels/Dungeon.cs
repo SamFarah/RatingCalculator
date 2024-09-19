@@ -22,7 +22,7 @@ public class Dungeon
 
 public class DungeonWithScores : Dungeon
 {
-    public double? Score { get; set; }   
+    public double? Score { get; set; }
     public int TimeLimit { get; set; }
 
 }

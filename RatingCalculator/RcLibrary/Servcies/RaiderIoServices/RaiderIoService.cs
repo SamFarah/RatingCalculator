@@ -119,7 +119,7 @@ public class RaiderIoService : IRaiderIoService
     }
 
     public async Task<List<Affix>?> GetWeeklyAffixes(string region)
-    {        
+    {
         var qsParams = new Dictionary<string, string>() { { "region", region } };
         var endpoint = new Uri(QueryHelpers.AddQueryString("mythic-plus/affixes", qsParams), UriKind.Relative);
         try
@@ -134,5 +134,5 @@ public class RaiderIoService : IRaiderIoService
         }
     }
 
-    
+
 }

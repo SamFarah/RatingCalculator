@@ -34,9 +34,9 @@ public class SearchToonViewModel
     [Display(Name = "Get the rating this week")]
     public bool ThisWeekOnly { get; set; } = true;
 
-    [Display(Name ="Season")]
+    [Display(Name = "Season")]
     public string SeasonSlug { get; set; } = string.Empty;
 
-    [Display(Name ="Expansion")]
+    [Display(Name = "Expansion")]
     public int ExpansionId { get; set; } = 0;
 }
