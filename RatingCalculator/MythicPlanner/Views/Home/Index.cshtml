@@ -22,6 +22,10 @@
         $(function () {
             $("form").on("submit", function (e) {
                 e.preventDefault();
+
+                var rememberMe = $('#RememberMe').is(':checked');
+                updateStoredInfo(rememberMe);
+
                 $.ajax({
                     url: "/@ViewContext.RouteData.Values["controller"]/ProcessCharacter",
                     type: "get",
@@ -35,10 +39,10 @@
                     },
                     error: function (xhr) {
                         $("#CharInfoDiv").html(`<div class="alert alert-danger " role="alert">
-                                                <div>
-                                                    ${xhr.responseText}
-                                                </div>
-                                            </div>`);
+                                                                                        <div>
+                                                                                            ${xhr.responseText}
+                                                                                        </div>
+                                                                                    </div>`);
                     }
                 });
 
@@ -70,7 +74,7 @@
             };
 
             function GetSelectItems(action, id, select, finishCallBack) {
-                $.ajax({
+                return $.ajax({
                     url: '/@ViewContext.RouteData.Values["controller"]/' + action,
                     type: 'GET',
                     datatype: 'JSON',
@@ -84,6 +88,8 @@
                         $('#Load' + action).hide();
                         select.selectpicker('render');
                         if (finishCallBack !== undefined) finishCallBack();
+
+
                     },
                     success: function (data) { populateSelect(select, data); }
                 });
@@ -112,17 +118,51 @@
             });
 
 
-            GetSelectItems('GetRealms', regionSelect.val(), realmSelect);
+            var lastAjaxCall = GetSelectItems('GetRealms', regionSelect.val(), realmSelect);
             GetSelectItems('GetSeasons', expansionSelect.val(), seasonSelect, function () {
                 GetSelectItems('GetDungeons', JSON.stringify({ Season: seasonSelect.val(), Expansion: expansionSelect.val() }), dungSelect);
             });
 
 
-
-
-
+            Promise.all([lastAjaxCall])
+                .then(function (responses) {
+                    populateFromMemory();
+                })
+                .catch(function (error) {
+                    console.error("An error occurred while fetching data: ", error);
+                });
 
         });
+
+        $('#RememberMe').on('change', function () { if (!$(this).is(':checked')) localStorage.removeItem('characterInfo'); });
+
+        function updateStoredInfo(store) {
+            if (store) {
+                var characterInfo = {
+                    reagion: $("#Region").val(),
+                    realm: $("#Realm").val(),
+                    name: $("#CharacterName").val()                    
+                };
+                localStorage.setItem('characterInfo', JSON.stringify(characterInfo));
+            }
+            else {
+                localStorage.removeItem('characterInfo');
+            }
+        }
+        function populateFromMemory() {
+            var storedCharacterInfo = localStorage.getItem('characterInfo');
+            if (storedCharacterInfo) {
+                var characterInfo = JSON.parse(storedCharacterInfo);
+                $("#Region").val(characterInfo.reagion);
+                $("#Realm").val(characterInfo.realm);
+                $("#Realm").selectpicker('refresh');
+                $("#CharacterName").val(characterInfo.name);
+                $('#RememberMe').prop('checked', true);
+                $("#TargetRating").focus();
+            }
+
+
+        }
     </script>
 }
 <form class="needs-validation" novalidate>
@@ -174,6 +214,16 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="row mb-3">
+                    <div class="col">
+                        <div class="form-check form-switch">
+                            <input type="checkbox" name="RememberMe" id="RememberMe" class="form-check-input" />
+                            <Label for="RememberMe" class="form-check-label">Remember Me</Label>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="row mt-3">
                     <div class="col AdvancedOptions">
                         <hr />
@@ -232,13 +282,13 @@
                     </div>
                 </div>
                 @* <div class="row mb-3">
-                    <div class="col">
-                        <div class="form-check form-switch">
-                            <input asp-for="ThisWeekOnly" class="form-check-input" checked="checked" />
+                <div class="col">
+                <div class="form-check form-switch">
+                <input asp-for="ThisWeekOnly" class="form-check-input" checked="checked" />
 
-                            <Label asp-for="ThisWeekOnly" class="form-check-label"></Label>
-                        </div>
-                    </div>
+                <Label asp-for="ThisWeekOnly" class="form-check-label"></Label>
+                </div>
+                </div>
                 </div> *@
                 <div class="row mb-2">
                     <div class="d-grid gap-2">
@@ -274,7 +324,7 @@
 
         <div class="col mt-5" id="CharInfoDiv">
             <div>
-                <h3>How To Use:</h3>                
+                <h3>How To Use:</h3>
 
                 <p class="lead">
                     Start by entering your World of Warcraft&trade; character information on the left form:
@@ -400,49 +450,49 @@
                         <li>
                             If <var>P<sub>T</sub></var> > 40% then 0 rating is given to this dungeon
                         </li>
-                       @*  <li>
-                            If the key level is 21 or higher, then not timing it will use the base score for a level 20 key.
-                            for example, if the key level is 26 and it was over the time limit then <var>Base<sub>20</sub></var> = 170 (and not 212) is used for the calculations
+                        @*  <li>
+                        If the key level is 21 or higher, then not timing it will use the base score for a level 20 key.
+                        for example, if the key level is 26 and it was over the time limit then <var>Base<sub>20</sub></var> = 170 (and not 212) is used for the calculations
                         </li> *@
                     </ol>
 
                 </p>
 
                 @* <p>
-                    All this is half the story. We cannot forget about the alternating weeks (Tyrannical and Fortified). For each dungeon, you will have 2 ratings, the best rating you got for Tyrannical
-                    and another for Fortified. The way they are combined is as follows: <br />
-                    <div class="code eq" data-eqNo="Eq. 4">
-                        <var>Dungeon Rating</var> = (Max[<var>R<sub>Tyr</sub></var> , <var>R<sub>Fort</sub></var>] * 1.5) + (Min[<var>R<sub>Tyr</sub></var> , <var>R<sub>Fort</sub></var>] * 0.5)
-                    </div>
-                    <br /> where: <br />
-                    <var>R<sub>Tyr</sub></var> = Your rating for a certain dungeon on Tyrannical. <br />
-                    <var>R<sub>Fort</sub></var> = Your rating for the same dungeon on Fortified. <br />
+                All this is half the story. We cannot forget about the alternating weeks (Tyrannical and Fortified). For each dungeon, you will have 2 ratings, the best rating you got for Tyrannical
+                and another for Fortified. The way they are combined is as follows: <br />
+                <div class="code eq" data-eqNo="Eq. 4">
+                <var>Dungeon Rating</var> = (Max[<var>R<sub>Tyr</sub></var> , <var>R<sub>Fort</sub></var>] * 1.5) + (Min[<var>R<sub>Tyr</sub></var> , <var>R<sub>Fort</sub></var>] * 0.5)
+                </div>
+                <br /> where: <br />
+                <var>R<sub>Tyr</sub></var> = Your rating for a certain dungeon on Tyrannical. <br />
+                <var>R<sub>Fort</sub></var> = Your rating for the same dungeon on Fortified. <br />
                 </p>
 
                 <p>
-                    To continue on the above example, lets assume that the above run was on Tyrannical week, and it was your best run. And also, let us say that your best run on Fortified (for the same dungeon)
-                    is a level 16, finished within 35 mins and 15 seconds ( = 2115 seconds in total), note that this is over the time limit. Then the calculations go as follows:<br />
-                    First we calculate the time percentage:<br />
+                To continue on the above example, lets assume that the above run was on Tyrannical week, and it was your best run. And also, let us say that your best run on Fortified (for the same dungeon)
+                is a level 16, finished within 35 mins and 15 seconds ( = 2115 seconds in total), note that this is over the time limit. Then the calculations go as follows:<br />
+                First we calculate the time percentage:<br />
 
-                    <div class="code">
-                        <var>P<sub>T</sub></var> = (1980 - 2115) / 1980 = -6.82%
-                    </div>
-                    <br />
-                    Therefore, the rating should be calculated as:<br />
-                    <div class="code">
-                        <var>Rating<sub>Fort</sub></var> = 142 + (-0.0682 * 12.5) - 5  = 136.15 ≈ 136
-                    </div><br />
+                <div class="code">
+                <var>P<sub>T</sub></var> = (1980 - 2115) / 1980 = -6.82%
+                </div>
+                <br />
+                Therefore, the rating should be calculated as:<br />
+                <div class="code">
+                <var>Rating<sub>Fort</sub></var> = 142 + (-0.0682 * 12.5) - 5  = 136.15 ≈ 136
+                </div><br />
 
-                    Note that we subtracted 5 rating because this run was over the time limit as per Eq. 3. <br />
+                Note that we subtracted 5 rating because this run was over the time limit as per Eq. 3. <br />
 
-                    From here we can calculate the overall rating for this particular dungeon as <br />
-                    <div class="code">
-                        <var>Dungeon Rating</var> = (Max[151 , 136] * 1.5) + (Min[151 , 136] * 0.5) <br />
-                        = (151 * 1.5) + (136 * 0.5) = 294.5
-                    </div><br />
+                From here we can calculate the overall rating for this particular dungeon as <br />
+                <div class="code">
+                <var>Dungeon Rating</var> = (Max[151 , 136] * 1.5) + (Min[151 , 136] * 0.5) <br />
+                = (151 * 1.5) + (136 * 0.5) = 294.5
+                </div><br />
 
-                    And that would be your total rating for this particular dungeon. we calculate the rating for each of the different dungeon, and then add up all the ratings
-                    to get the total Mythic+ rating.
+                And that would be your total rating for this particular dungeon. we calculate the rating for each of the different dungeon, and then add up all the ratings
+                to get the total Mythic+ rating.
                 </p>
 
                 <p>Note that the best rating for each affix (Tyrannical and Fortified) for each dungeon is the one used for the final mythic rating.</p> *@
