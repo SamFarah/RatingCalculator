@@ -38,11 +38,7 @@
                         $('[data-toggle="tooltip"]').tooltip({ html: true })
                     },
                     error: function (xhr) {
-                        $("#CharInfoDiv").html(`<div class="alert alert-danger " role="alert">
-                                                                                        <div>
-                                                                                            ${xhr.responseText}
-                                                                                        </div>
-                                                                                    </div>`);
+                        $("#CharInfoDiv").html(`<div class="alert alert-danger " role="alert"><div>${xhr.responseText}</div></div>`);
                     }
                 });
 
@@ -141,7 +137,7 @@
                 var characterInfo = {
                     reagion: $("#Region").val(),
                     realm: $("#Realm").val(),
-                    name: $("#CharacterName").val()                    
+                    name: $("#CharacterName").val()
                 };
                 localStorage.setItem('characterInfo', JSON.stringify(characterInfo));
             }
