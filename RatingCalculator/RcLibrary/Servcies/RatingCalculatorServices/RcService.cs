@@ -31,7 +31,7 @@ public class RcService : IRcService
         new () { Level = 9  , Base = 295 },
         new () { Level = 10 , Base = 320 },
         new () { Level = 11 , Base = 335 },
-        new () { Level = 12 , Base = 350 },
+        new () { Level = 12 , Base = 365 },
     };
 
     private readonly List<Affix> _affixes = new()
@@ -310,14 +310,14 @@ public class RcService : IRcService
     private DungeonMetrics? GetDungeonMetrics(double bestScore)
     {
         DungeonMetrics? dungeonMetric;
-        if (bestScore > 365)
+        if (bestScore > 380)
         {
-            var theoreticalLevel = (int)((bestScore - 170) / 15.0); // to get a rating that requires a key higher than level 10, this will calculates the theoretical key
-                                                                    // 125 + (key level * 15) + (number of affixes * 10)+ (5 if it has 3 or more affiex... I THINK)                                                                                                                                        
+            var theoreticalLevel = (int)((bestScore - 185) / 15.0); // to get a rating that requires a key higher than level 10, this will calculates the theoretical key
+                                                                    // 145 + (key level * 15) + (number of affixes * 10)                                                                                                                                        
             dungeonMetric = new DungeonMetrics
             {
                 Level = theoreticalLevel,
-                Base = 130 + (theoreticalLevel * 15) + 40
+                Base = 145 + (theoreticalLevel * 15) + 40
             };
         }
         else dungeonMetric = _dungeonMatrix.Where(x => bestScore <= x.Max && bestScore >= x.Min).FirstOrDefault();
@@ -327,7 +327,7 @@ public class RcService : IRcService
     public double GetDugneonScore(double time, double timeLimit, int level)
     {
         var metric = _dungeonMatrix.FirstOrDefault(x => x.Level == level);
-        if (level > 12 && metric == null) metric = new DungeonMetrics() { Base = (level >= 7 ? 130 : 125) + (level * 15) + (10 * (level >= 10 ? 4 : level >= 7 ? 3 : level >= 4 ? 2 : 1)) };
+        if (level > 12 && metric == null) metric = new DungeonMetrics() { Base = (level >= 12 ? 145 : level >= 7 ? 130 : 125) + (level * 15) + (10 * (level >= 10 ? 4 : level >= 7 ? 3 : level >= 4 ? 2 : 1)) };
         if (metric == null) return 0;
 
         var pt = Math.Abs((timeLimit - time) / timeLimit);
@@ -341,7 +341,17 @@ public class RcService : IRcService
         return (await GetRegionSeasonsAsync(region, expId))?.FirstOrDefault(x => x.Slug == slug);
     }
 
-    public List<DungeonMetrics> GetDungeonMetrics() => _dungeonMatrix;
+    public List<DungeonMetrics> GetDungeonMetrics()
+    {
+        var output = _dungeonMatrix;
+        for (var i = 13; i <= 20; i++) output.Add(new DungeonMetrics
+        {
+            Level = i,
+            Base = 145 + (i * 15) + 40
+        });
+
+        return output;
+    }
 
 
     public async Task<List<Realm>?> GetRegionRealmsAsync(string region)
