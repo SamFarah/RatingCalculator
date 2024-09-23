@@ -343,7 +343,7 @@ public class RcService : IRcService
 
     public List<DungeonMetrics> GetDungeonMetrics()
     {
-        var output = _dungeonMatrix;
+        var output = _dungeonMatrix.ToList() ;
         for (var i = 13; i <= 20; i++) output.Add(new DungeonMetrics
         {
             Level = i,
