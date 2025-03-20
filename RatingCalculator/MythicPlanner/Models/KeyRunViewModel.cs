@@ -66,6 +66,23 @@ public class KeyRunViewModel
         }
     }
 
+    public string OverUnderStringDiscord
+    {
+        get
+        {
+            if (TimeLimit == 0) return "N/A";
+            if (ClearTimeMs > TimeLimit) // over
+            {
+                return $"over by {OverUnderTime}";
+            }
+            else if (ClearTimeMs < TimeLimit) // under
+            {
+                return $"under by {OverUnderTime}";
+            }
+            return "exactly on time";
+        }
+    }
+
 
     public string ScoreAdjust { get { return Math.Round((NewScore - OldScore) ?? 0, 1).ToString(); } }
     public double RunTimePercent { get { return (double)(TimeLimit - ClearTimeMs) / (double)TimeLimit; } }

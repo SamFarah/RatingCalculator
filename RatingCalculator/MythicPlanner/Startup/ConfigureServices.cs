@@ -1,4 +1,5 @@
-﻿using MythicPlanner.Models;
+﻿using MythicPlanner.BackgroundServices;
+using MythicPlanner.Models;
 using RcLibrary.Helpers;
 using RcLibrary.Models.Configurations;
 using RcLibrary.Servcies.BlizzardServices;
@@ -27,6 +28,8 @@ public static class WebAppBuilderExtensions
         services.AddOptions();
 
         services.AddMvc();
+
+        builder.Services.AddHostedService<DiscordBotService>(); 
 
         services.AddSingleton(AutoMapper.CreateConfiguredMapper());
         services.AddSingleton<IRcService, RcService>();
