@@ -127,9 +127,4 @@ public class BlizzardService : IBlizzardService
         else _logger.LogError("Blizzard Token was null while trying to get expansions");
         return null;
     }
-
-
-
-
-
 }

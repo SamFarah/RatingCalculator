@@ -47,7 +47,6 @@ public class HomeController : Controller
         ViewBag.expansions = exps?.Select(x => new { Text = x.Name, Value = x.Id, Selected = (x.Id == currentExpId) }).ToList();
     }
 
-
     public async Task<IActionResult> Index()
     {
         await GetExpansionView();
