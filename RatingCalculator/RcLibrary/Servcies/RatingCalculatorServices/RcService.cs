@@ -381,4 +381,7 @@ public class RcService : IRcService
         var output = await _memoryCache.GetCachedValue($"Expansions{region}", () => _blizzard.GetExpansionsAsync(region));
         return output;
     }
+    public void RemoveCachedWowExpansions(string region) => _memoryCache.RemoveCachedValue($"Expansions{region}");
+    public void RemoveCachedWowRealms(string region) => _memoryCache.RemoveCachedValue($"Realms{region}");
+
 }

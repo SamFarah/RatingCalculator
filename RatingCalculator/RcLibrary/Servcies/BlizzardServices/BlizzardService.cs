@@ -55,10 +55,10 @@ public class BlizzardService : IBlizzardService
 
 
     public async Task<List<Realm>?> GetRegionRealms(string region)
-    {
+    {        
         region = region.ToLower();
 
-        var token = await _memoryCache.GetCachedValue("BlizzardToken", GetToken, 86399);
+        var token = await _memoryCache.GetCachedValue("BlizzardToken", GetToken, 76399);        
         if (token?.Token != null)
         {
             _blizzApi.Dispose();
@@ -80,14 +80,16 @@ public class BlizzardService : IBlizzardService
                 throw;
             }
         }
+        else _logger.LogError("Blizzard Token was null while trying to get realms");
+        
         return null;
     }
 
     public async Task<List<Expansion>?> GetExpansionsAsync(string region)
-    {
+    {        
         region = region.ToLower();
 
-        var token = await _memoryCache.GetCachedValue("BlizzardToken", GetToken, 86399);
+        var token = await _memoryCache.GetCachedValue("BlizzardToken", GetToken, 76399);
         if (token?.Token != null)
         {
             _blizzApi.Dispose();
@@ -122,6 +124,7 @@ public class BlizzardService : IBlizzardService
                 throw;
             }
         }
+        else _logger.LogError("Blizzard Token was null while trying to get expansions");
         return null;
     }
 

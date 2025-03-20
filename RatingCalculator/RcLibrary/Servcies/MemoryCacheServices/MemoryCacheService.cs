@@ -20,4 +20,6 @@ public class MemoryCacheService : IMemoryCacheService
         }
         return cachedValue;
     }
+
+    public void RemoveCachedValue(string cacheKey)=> _memoryCache.Remove(cacheKey);    
 }

@@ -13,4 +13,6 @@ public interface IRcService
     Task<Season?> GetSeason(string region, string slug, int expId);
     Task<Season?> GetWowCurrentSeason(string region, int expId);
     Task<List<Expansion>?> GetWowExpansionsAsync(string region);
+    void RemoveCachedWowExpansions(string region);
+    void RemoveCachedWowRealms(string region);
 }
