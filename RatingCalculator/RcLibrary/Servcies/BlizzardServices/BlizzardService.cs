@@ -6,6 +6,7 @@ using RcLibrary.Models;
 using RcLibrary.Models.BlizzardModels;
 using RcLibrary.Models.Configurations;
 using RcLibrary.Servcies.MemoryCacheServices;
+using System.Linq.Expressions;
 using System.Text;
 
 namespace RcLibrary.Servcies.BlizzardServices;
@@ -43,7 +44,8 @@ public class BlizzardService : IBlizzardService
         try
         {
             var ouput = await _blizzApi.PostAsync<AccessToken>("token", content);
-            return ouput ?? throw new Exception("Something went wrong");
+            
+            return ouput ?? throw new Exception("Something went wrong while getting blizzard token");
         }
         catch (Exception ex)
         {
@@ -58,7 +60,7 @@ public class BlizzardService : IBlizzardService
     {        
         region = region.ToLower();
 
-        var token = await _memoryCache.GetCachedValue("BlizzardToken", GetToken, 76399);        
+        var token = await _memoryCache.GetCachedValue("BlizzardToken", GetToken, 76399);
         if (token?.Token != null)
         {
             _blizzApi.Dispose();
@@ -80,7 +82,11 @@ public class BlizzardService : IBlizzardService
                 throw;
             }
         }
-        else _logger.LogError("Blizzard Token was null while trying to get realms");
+        else
+        {
+            _logger.LogError("Blizzard Token was null while trying to get realms");
+            _memoryCache.RemoveCachedValue("BlizzardToken"); //dont cache a null then.
+        }
         
         return null;
     }
@@ -124,7 +130,11 @@ public class BlizzardService : IBlizzardService
                 throw;
             }
         }
-        else _logger.LogError("Blizzard Token was null while trying to get expansions");
+        else
+        {
+            _logger.LogError("Blizzard Token was null while trying to get expansions");
+            _memoryCache.RemoveCachedValue("BlizzardToken"); //dont cache a null then.
+        }
         return null;
     }
 }
