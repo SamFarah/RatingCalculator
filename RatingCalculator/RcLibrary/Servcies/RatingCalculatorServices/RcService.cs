@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using RcLibrary.Helpers;
 using RcLibrary.Models;
 using RcLibrary.Models.BlizzardModels;
@@ -22,14 +23,14 @@ public class RcService : IRcService
     private readonly Settings _configs;
     private readonly List<DungeonMetrics> _dungeonMatrix = new()
     {
-        new () { Level = 2  , Base = 165 },
-        new () { Level = 3  , Base = 180 },
-        new () { Level = 4  , Base = 205 },
-        new () { Level = 5  , Base = 220 },
-        new () { Level = 6  , Base = 235 },
-        new () { Level = 7  , Base = 265 },
-        new () { Level = 8  , Base = 280 },
-        new () { Level = 9  , Base = 295 },
+        new () { Level = 2  , Base = 155 },
+        new () { Level = 3  , Base = 170 },
+        new () { Level = 4  , Base = 200 },
+        new () { Level = 5  , Base = 215 },
+        new () { Level = 6  , Base = 230 },
+        new () { Level = 7  , Base = 260 },
+        new () { Level = 8  , Base = 275 },
+        new () { Level = 9  , Base = 290 },
         new () { Level = 10 , Base = 320 },
         new () { Level = 11 , Base = 335 },
         new () { Level = 12 , Base = 365 },
@@ -132,7 +133,7 @@ public class RcService : IRcService
         //double? maxObtainableDunScore = 490.0;
 
         if (raiderIoToon?.BestMythicRuns != null) allBestPlayerRuns.AddRange(raiderIoToon.BestMythicRuns);
-        // if (raiderIoToon?.AlternateMythicRuns != null) allBestPlayerRuns.AddRange(raiderIoToon.AlternateMythicRuns);
+        // if (raiderIoToon?.AlternateMythicRuns != null) allBestPlayerRuns.AddRange(raiderIoToon.AlternateMythicRuns);        
 
         ProcessedCharacter output = _mapper.Map<ProcessedCharacter>(raiderIoToon);
         output.TargetRating.Value = targetRating;
@@ -161,7 +162,7 @@ public class RcService : IRcService
                     //else currentDun.TyrScore = playerRun.Rating;
                 }
             }
-            double? ratingPerDung = targetRating / seasonInfo.Dungeons.Count;
+            double? ratingPerDung = targetRating / (seasonInfo.Dungeons.Count-(avoidDungs?.Count??0));
             //double? maxScore = ratingPerDung;
             SeasonDungoens = SeasonDungoens.OrderByDescending(x => x.Score).ToList();
             var runPool = new List<DungeonWithScores>();
@@ -203,8 +204,26 @@ public class RcService : IRcService
                         if (adjustSum >= targetRating - output.Rating.Value) { break; }
 
                     }
+
+                    var newRunOption = anOptionList.Take(j + 1).ToList();
+                    var newRunDetails = newRunOption
+                        .Select(x => new { x.DungeonName, x.KeyLevel })
+                        .OrderBy(x => x.DungeonName) // Sort to ensure order-independent comparison
+                        .ThenBy(x => x.KeyLevel)
+                        .ToList();
+
+                    // Check if this set of dungeon names and levels already exists in output.RunOptions
+                    bool alreadyExists = output.RunOptions.Any(existingOption =>
+                        existingOption
+                            .Select(x => new { x.DungeonName, x.KeyLevel })
+                            .OrderBy(x => x.DungeonName)
+                            .ThenBy(x => x.KeyLevel)
+                            .SequenceEqual(newRunDetails)
+                    );
+
                     //if (adjustSum >= targetRating - output.Rating.Value) 
-                    output.RunOptions.Add(anOptionList.Take(j + 1).ToList());
+
+                    if (!alreadyExists) output.RunOptions.Add(anOptionList.Take(j + 1).ToList());
                 }
             }
 
@@ -228,28 +247,28 @@ public class RcService : IRcService
 
                 double? time = 0;
 
-
-                if (bestScore < dungeonMetric.Base) // overtime
+                if (bestScore < dungeonMetric.Base-15) // overtime
                 {
-
                     var timePercent = Math.Min(0.4, (double)((dungeonMetric.Base - bestScore - 15) / 37.5));
                     time = runPool[i].TimeLimit + runPool[i].TimeLimit * timePercent;
                 }
                 else // beat timer
                 {
-                    var timePercent = Math.Min(0.4, (double)((bestScore - dungeonMetric.Base) / 37.5));
+                    var timePercent =Math.Max(0, Math.Min(0.4, (double)((bestScore - dungeonMetric.Base) / 37.5)));
                     time = runPool[i].TimeLimit - runPool[i].TimeLimit * timePercent;
                 }
-                output.Add(new KeyRun
-                {
-                    DungeonName = runPool[i].Name,
-                    KeyLevel = dungeonMetric.Level,
-                    TimeLimit = runPool[i].TimeLimit,
-                    ClearTimeMs = (int)time,
-                    Affixes = await GetDungoenAffixes(dungeonMetric.Level, region),
-                    OldScore = runPool[i].Score ?? 0,
-                    NewScore = (GetDugneonScore(time.Value, runPool[i].TimeLimit, dungeonMetric.Level))
-                });
+                var newScore = GetDugneonScore(time.Value, runPool[i].TimeLimit, dungeonMetric.Level);
+                if (newScore > (runPool[i].Score??0))
+                    output.Add(new KeyRun
+                    {
+                        DungeonName = runPool[i].Name,
+                        KeyLevel = dungeonMetric.Level,
+                        TimeLimit = runPool[i].TimeLimit,
+                        ClearTimeMs = (int)time,
+                        Affixes = await GetDungoenAffixes(dungeonMetric.Level, region),
+                        OldScore = runPool[i].Score ?? 0,
+                        NewScore = newScore
+                    });
             }
         }
 
@@ -319,12 +338,13 @@ public class RcService : IRcService
                 Base = 145 + (theoreticalLevel * 15) + 40
             };
         }
-        else dungeonMetric = _dungeonMatrix.Where(x => bestScore <= x.Max && bestScore >= x.Min).FirstOrDefault();
+        else dungeonMetric = _dungeonMatrix.Where(x => bestScore <= x.Max).FirstOrDefault();
         return dungeonMetric;
     }
 
     public double GetDugneonScore(double time, double timeLimit, int level)
     {
+        if (level > 10 && time > timeLimit) level = 10; // if untimed a 11+ revert back to 10
         var metric = _dungeonMatrix.FirstOrDefault(x => x.Level == level);
         if (level > 12 && metric == null) metric = new DungeonMetrics() { Base = (level >= 12 ? 145 : level >= 7 ? 130 : 125) + (level * 15) + (10 * (level >= 10 ? 4 : level >= 7 ? 3 : level >= 4 ? 2 : 1)) };
         if (metric == null) return 0;

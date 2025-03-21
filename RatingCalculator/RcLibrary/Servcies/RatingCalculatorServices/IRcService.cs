@@ -15,4 +15,5 @@ public interface IRcService
     Task<List<Expansion>> GetWowExpansionsAsync(string region);
     void RemoveCachedWowExpansions(string region);
     void RemoveCachedWowRealms(string region);
+    double GetDugneonScore(double time, double timeLimit, int level);
 }

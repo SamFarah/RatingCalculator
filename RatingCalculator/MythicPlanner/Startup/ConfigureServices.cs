@@ -29,7 +29,7 @@ public static class WebAppBuilderExtensions
 
         services.AddMvc();
 
-        builder.Services.AddHostedService<DiscordBotService>(); 
+        services.AddHostedService<DiscordBotService>(); 
 
         services.AddSingleton(AutoMapper.CreateConfiguredMapper());
         services.AddSingleton<IRcService, RcService>();
