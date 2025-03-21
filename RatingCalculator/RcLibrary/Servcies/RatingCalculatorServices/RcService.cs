@@ -1,8 +1,10 @@
 ﻿using AutoMapper;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using RcLibrary.Helpers;
 using RcLibrary.Models;
 using RcLibrary.Models.BlizzardModels;
+using RcLibrary.Models.Configurations;
 using RcLibrary.Models.RaiderIoModels;
 using RcLibrary.Servcies.BlizzardServices;
 using RcLibrary.Servcies.MemoryCacheServices;
@@ -17,8 +19,7 @@ public class RcService : IRcService
     private readonly IBlizzardService _blizzard;
     private readonly IMapper _mapper;
     private readonly ILogger<RcService> _logger;
-
-
+    private readonly Settings _configs;
     private readonly List<DungeonMetrics> _dungeonMatrix = new()
     {
         new () { Level = 2  , Base = 165 },
@@ -95,21 +96,19 @@ public class RcService : IRcService
 
     };
 
-
-
-
-
     public RcService(IMemoryCacheService memoryCache,
                      IRaiderIoService raiderIo,
                      IBlizzardService blizzard,
                      IMapper mapper,
-                     ILogger<RcService> logger)
+                     ILogger<RcService> logger,
+                     IOptions<Settings> configs)
     {
         _memoryCache = memoryCache;
         _raiderIo = raiderIo;
         _blizzard = blizzard;
         _mapper = mapper;
         _logger = logger;
+        _configs = configs.Value;
     }
 
 
@@ -343,7 +342,7 @@ public class RcService : IRcService
 
     public List<DungeonMetrics> GetDungeonMetrics()
     {
-        var output = _dungeonMatrix.ToList() ;
+        var output = _dungeonMatrix.ToList();
         for (var i = 13; i <= 20; i++) output.Add(new DungeonMetrics
         {
             Level = i,
@@ -376,9 +375,20 @@ public class RcService : IRcService
                                             && (x.Ends?[region] == null || currentDate < x.Ends?[region]));
     }
 
-    public async Task<List<Expansion>?> GetWowExpansionsAsync(string region)
+    public async Task<List<Expansion>> GetWowExpansionsAsync(string region)
     {
         var output = await _memoryCache.GetCachedValue($"Expansions{region}", () => _blizzard.GetExpansionsAsync(region));
+
+        // I beleive those random times when the website breaks is because API did not get back the expansion list properlly
+        // if thats the case.. then revert back to exp ID that is defined in the appsettings. 
+        if (output == null || output.Count == 0)
+        {
+            RemoveCachedWowExpansions(region); // remove whatever empty list that have been cached, maybe it will do better next time.
+            _logger.LogWarning("GetWowExpansionsAsync returned null or no elements, reverting back to fall back expansion");
+            var currentExpId = _configs.CurrentExpansionIdFallBack;
+            output = new() { new() { Id = currentExpId, Name = "Current Expansion" } };
+        }
+
         return output;
     }
     public void RemoveCachedWowExpansions(string region) => _memoryCache.RemoveCachedValue($"Expansions{region}");

@@ -6,7 +6,6 @@ using RcLibrary.Models;
 using RcLibrary.Models.BlizzardModels;
 using RcLibrary.Models.Configurations;
 using RcLibrary.Servcies.MemoryCacheServices;
-using System.Linq.Expressions;
 using System.Text;
 
 namespace RcLibrary.Servcies.BlizzardServices;
@@ -30,7 +29,7 @@ public class BlizzardService : IBlizzardService
     }
 
     private async Task<AccessToken?> GetToken()
-    {
+    {        
         _blizzApi.Dispose();
         _blizzApi.InitializeClient(_config.BlizzardApi.OAuthUrl);
 

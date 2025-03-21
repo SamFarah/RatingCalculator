@@ -1,9 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 using MythicPlanner.Models;
 using RcLibrary.Models;
-using RcLibrary.Models.Configurations;
 using RcLibrary.Servcies.RatingCalculatorServices;
 using System.Diagnostics;
 
@@ -14,35 +12,22 @@ public class HomeController : Controller
     private readonly IRcService _ratingCalculator;
     private readonly IMapper _mapper;
     private readonly ILogger<HomeController> _logger;
-    private readonly Settings _configs;
+    
 
     public HomeController(IRcService ratingCalculator,
                           IMapper mapper,
-                          ILogger<HomeController> logger,
-                          IOptions<Settings> configs)
+                          ILogger<HomeController> logger)
     {
         _ratingCalculator = ratingCalculator;
         _mapper = mapper;
-        _logger = logger;
-        _configs = configs.Value;
+        _logger = logger;        
     }
 
     private async Task GetExpansionView()
     {
         var defaultRegion = "us";
         var exps = await _ratingCalculator.GetWowExpansionsAsync(defaultRegion);
-        var currentExpId = exps?.Max(x => x.Id);
-
-
-        // I beleive those random times when the website breaks is because API did not get back the expansion list properlly
-        // if thats the case.. then revert back to exp ID that is defined in the appsettings. 
-        if (exps == null || exps.Count == 0)
-        {
-            _ratingCalculator.RemoveCachedWowExpansions(defaultRegion); // remove whatever empty list that have been cached, maybe it will do better next time.
-            _logger.LogWarning("GetWowExpansionsAsync returned null or no elements, reverting back to fall back expansion");
-            currentExpId = _configs.CurrentExpansionIdFallBack;
-            exps = new() { new() { Id = currentExpId.Value, Name = "Current Expansion" } };
-        }
+        var currentExpId = exps?.Max(x => x.Id);            
 
         ViewBag.expansions = exps?.Select(x => new { Text = x.Name, Value = x.Id, Selected = (x.Id == currentExpId) }).ToList();
     }
