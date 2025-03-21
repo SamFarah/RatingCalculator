@@ -84,7 +84,7 @@ public class RcService : IRcService
         {
             Id = 147,
             Name = "Xal'atath's Guile",
-            Description = "Xal'atath betrays players, revoking her bargains and increasing the health and damage of enemies by 20%",
+            Description = "Xal'atath betrays players, revoking her bargains while making deaths subtract 15 seconds from time remaining.",
             IconUrl = "ability_racial_chillofnight",
         },
         new()
@@ -114,7 +114,7 @@ public class RcService : IRcService
 
 
 
-    public async Task<ProcessedCharacter?> ProcessCharacter(int expId, string seasonSlug, string region, string realm, string name, double targetRating, List<string>? avoidDungs, int? maxKeyLevel,string source="web")
+    public async Task<ProcessedCharacter?> ProcessCharacter(int expId, string seasonSlug, string region, string realm, string name, double targetRating, List<string>? avoidDungs, int? maxKeyLevel, string source = "web")
     {
         _logger.LogInformation("Processing {characterName}-{region}-{realm} with target rating: {targetRating} for season {season} using {source}", name, region, realm, targetRating, seasonSlug, source);
 
@@ -162,7 +162,7 @@ public class RcService : IRcService
                     //else currentDun.TyrScore = playerRun.Rating;
                 }
             }
-            double? ratingPerDung = targetRating / (seasonInfo.Dungeons.Count-(avoidDungs?.Count??0));
+            double? ratingPerDung = targetRating / (seasonInfo.Dungeons.Count - (avoidDungs?.Count ?? 0));
             //double? maxScore = ratingPerDung;
             SeasonDungoens = SeasonDungoens.OrderByDescending(x => x.Score).ToList();
             var runPool = new List<DungeonWithScores>();
@@ -247,18 +247,18 @@ public class RcService : IRcService
 
                 double? time = 0;
 
-                if (bestScore < dungeonMetric.Base-15) // overtime
+                if (bestScore < dungeonMetric.Base - 15) // overtime
                 {
                     var timePercent = Math.Min(0.4, (double)((dungeonMetric.Base - bestScore - 15) / 37.5));
                     time = runPool[i].TimeLimit + runPool[i].TimeLimit * timePercent;
                 }
                 else // beat timer
                 {
-                    var timePercent =Math.Max(0, Math.Min(0.4, (double)((bestScore - dungeonMetric.Base) / 37.5)));
+                    var timePercent = Math.Max(0, Math.Min(0.4, (double)((bestScore - dungeonMetric.Base) / 37.5)));
                     time = runPool[i].TimeLimit - runPool[i].TimeLimit * timePercent;
                 }
                 var newScore = GetDugneonScore(time.Value, runPool[i].TimeLimit, dungeonMetric.Level);
-                if (newScore > (runPool[i].Score??0))
+                if (newScore > (runPool[i].Score ?? 0))
                     output.Add(new KeyRun
                     {
                         DungeonName = runPool[i].Name,
@@ -277,15 +277,15 @@ public class RcService : IRcService
 
     private async Task<(int l2id, int l4id)> GetWWRotatingAffixIds(string region)
     {
-        var l2ids = new List<int> { 148, 158, 159, 160 }; // all the Xal'atath's Bargain affixes
-        var l4ids = new List<int> { 9, 10 }; // Tyrannical, Fortified
+        var l4ids = new List<int> { 148, 158, 159, 160 }; // all the Xal'atath's Bargain affixes
+        var l7ids = new List<int> { 9, 10 }; // Tyrannical, Fortified
 
         try
         {
             var affixes = await _raiderIo.GetWeeklyAffixes(region) ?? throw new Exception("raider.io returned null for affixes");
-            var l2Id = affixes.FirstOrDefault(x => l2ids.Contains(x.Id))?.Id ?? throw new Exception("raider.io did not return l2 affix");
-            var l4id = affixes.FirstOrDefault(x => l4ids.Contains(x.Id))?.Id ?? throw new Exception("raider.io did not return l4 affix");// asuming the first one between tyr and fort that appear in the list is the l4 one
-            return (l2Id, l4id);
+            var l4Id = affixes.FirstOrDefault(x => l4ids.Contains(x.Id))?.Id ?? throw new Exception("raider.io did not return l4 affix");
+            var l7id = affixes.FirstOrDefault(x => l7ids.Contains(x.Id))?.Id ?? throw new Exception("raider.io did not return l7 affix");// asuming the first one between tyr and fort that appear in the list is the l4 one
+            return (l4Id, l7id);
 
         }
         catch (Exception ex)
@@ -299,13 +299,13 @@ public class RcService : IRcService
             var seasonStartDate = new DateTime(2024, 09, 17);
             var today = DateTime.Now.Date;
             var numberOfWeeks = (int)((today - seasonStartDate).TotalDays / 7.0);
-            var l2AffixRotation = new List<int> { 148, 158, 159, 160 }; // assuming the smae order in https://www.wowhead.com/guide/mythic-plus-dungeons/the-war-within-season-1/overview
+            var l4AffixRotation = new List<int> { 148, 158, 160, 159 }; // assuming the smae order in https://www.wowhead.com/guide/mythic-plus-dungeons/the-war-within-season-1/overview
 
-            var weeklyL2Id = l2AffixRotation[numberOfWeeks % 4];
-            var weeklyL4Id = numberOfWeeks % 2 == 0 ? 9 : 10; // alternate 1 week tyr, one week fort
+            var weeklyL4Id = l4AffixRotation[numberOfWeeks % 4];
+            var weeklyL7Id = numberOfWeeks % 2 == 0 ? 9 : 10; // alternate 1 week tyr, one week fort
 
             //------------------------------ Workaround End ------------------------------
-            return (weeklyL2Id, weeklyL4Id);
+            return (weeklyL4Id, weeklyL7Id);
         }
     }
 
@@ -314,12 +314,11 @@ public class RcService : IRcService
         var output = new List<Affix>();
 
         // get weekly affix from raider.io 
-        var (weeklyL2Id, weeklyL4Id) = await _memoryCache.GetCachedValue($"l2l4affixes_{region}", () => GetWWRotatingAffixIds(region));
+        var (weeklyL4Id, weeklyL7Id) = await _memoryCache.GetCachedValue($"l4l7affixes_{region}", () => GetWWRotatingAffixIds(region));
 
-        if (keyLevel < 12) output.Add(_affixes.First(x => x.Id == weeklyL2Id)); //Xal'atath's whatever this week is, if key level is less than 12
-        if (keyLevel >= 4) output.Add(_affixes.First(x => x.Id == weeklyL4Id));
-        if (keyLevel >= 7) output.Add(_affixes.First(x => x.Id == 152));// Challenger's Peril
-        if (keyLevel >= 10) output.Add(_affixes.First(x => x.Id == (weeklyL4Id == 9 ? 10 : 9))); //  if the weekly is try then next one is fort, and vice versa            
+        if (keyLevel >= 4 && keyLevel < 12) output.Add(_affixes.First(x => x.Id == weeklyL4Id)); //Xal'atath's whatever this week is, if key level is less than 12
+        if (keyLevel >= 7) output.Add(_affixes.First(x => x.Id == weeklyL7Id));
+        if (keyLevel >= 10) output.Add(_affixes.First(x => x.Id == (weeklyL7Id == 9 ? 10 : 9))); //  if the weekly is tyr then next one is fort, and vice versa            
         if (keyLevel >= 12) output.Add(_affixes.First(x => x.Id == 147)); // Xal'atath's Guile 
 
         return output;
