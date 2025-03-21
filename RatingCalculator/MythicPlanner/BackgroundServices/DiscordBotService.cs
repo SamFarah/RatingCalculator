@@ -76,7 +76,7 @@ public class DiscordBotService : BackgroundService
 
             var defaultRegion = "us";
             var exps = await _ratingCalculator.GetWowExpansionsAsync(defaultRegion);
-            var currentExpId = exps?.Max(x => x.Id)??_configs.CurrentExpansionIdFallBack;
+            var currentExpId = exps?.Max(x => x.Id) ?? _configs.CurrentExpansionIdFallBack;
             var currentSeason = await _ratingCalculator.GetWowCurrentSeason("us", currentExpId);
             if (currentSeason?.Slug == null)
             {
@@ -92,7 +92,7 @@ public class DiscordBotService : BackgroundService
             int maxKeyLevel = Convert.ToInt32(command.Data.Options.FirstOrDefault(o => o.Name == "max_key_level")?.Value ?? 15);
 
             var toon = await _ratingCalculator.ProcessCharacter(currentExpId, currentSeason.Slug, region, realm,
-                                                                characterName, targetRating, null, maxKeyLevel);
+                                                                characterName, targetRating, null, maxKeyLevel, source: "discordBot");
 
             if (toon == null)
             {

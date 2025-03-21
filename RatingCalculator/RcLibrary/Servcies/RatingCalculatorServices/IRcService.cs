@@ -6,7 +6,7 @@ namespace RcLibrary.Servcies.RatingCalculatorServices;
 
 public interface IRcService
 {
-    Task<ProcessedCharacter?> ProcessCharacter(int expId, string seasonSlug, string region, string realm, string name, double targetRating, List<string>? avoidDungs, int? maxKeyLevel);
+    Task<ProcessedCharacter?> ProcessCharacter(int expId, string seasonSlug, string region, string realm, string name, double targetRating, List<string>? avoidDungs, int? maxKeyLevel, string source = "web");
     List<DungeonMetrics> GetDungeonMetrics();
     Task<List<Realm>?> GetRegionRealmsAsync(string region);
     Task<List<Season>?> GetRegionSeasonsAsync(string region, int expId);

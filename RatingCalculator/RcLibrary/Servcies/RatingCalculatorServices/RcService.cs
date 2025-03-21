@@ -114,9 +114,9 @@ public class RcService : IRcService
 
 
 
-    public async Task<ProcessedCharacter?> ProcessCharacter(int expId, string seasonSlug, string region, string realm, string name, double targetRating, List<string>? avoidDungs, int? maxKeyLevel)
+    public async Task<ProcessedCharacter?> ProcessCharacter(int expId, string seasonSlug, string region, string realm, string name, double targetRating, List<string>? avoidDungs, int? maxKeyLevel,string source="web")
     {
-        _logger.LogInformation("Processing {characterName}-{region}-{realm} with target rating: {targetRating} for season {season}", name, region, realm, targetRating, seasonSlug);
+        _logger.LogInformation("Processing {characterName}-{region}-{realm} with target rating: {targetRating} for season {season} using {source}", name, region, realm, targetRating, seasonSlug, source);
 
         var seasonInfo = await GetSeason(region, seasonSlug, expId);
         if (seasonInfo == null) { return null; }
