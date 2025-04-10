@@ -25,10 +25,7 @@ public class DiscordBotService : BackgroundService
         _ratingCalculator = ratingCalculator;
         _mapper = mapper;
         _configs = configs.Value;
-        _client = new DiscordSocketClient(new DiscordSocketConfig
-        {
-            GatewayIntents = GatewayIntents.Guilds | GatewayIntents.GuildMessages | GatewayIntents.MessageContent
-        });
+        _client = new DiscordSocketClient(new DiscordSocketConfig { GatewayIntents = GatewayIntents.None });
 
         _client.Log += LogAsync;
         _client.Ready += OnReady;
