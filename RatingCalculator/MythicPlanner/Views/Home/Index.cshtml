@@ -2,6 +2,62 @@
 @section scripts {
     <script>
 
+        function generateShareableUrl(formData) {
+            // Extract form values
+            var params = {};
+            formData.forEach(function(field) {
+                if (field.value) {
+                    params[field.name] = field.value;
+                }
+            });
+            
+            // Build the shareable URL
+            var baseUrl = window.location.origin;
+            
+            // Convert region enum value to string name
+            var regionMap = { '0': 'us', '1': 'eu', '2': 'tw', '3': 'kr' };
+            var region = regionMap[params.Region] || 'us';
+            
+            var realm = encodeURIComponent(params.Realm || '');
+            var character = encodeURIComponent(params.CharacterName || '');
+            var targetScore = params.TargetRating || 0;
+            
+            var url = baseUrl + '/share/' + region + '/' + realm + '/' + character + '/' + targetScore;
+            
+            // Add optional query parameters (only if different from defaults)
+            var queryParams = [];
+            
+            // Get current defaults from the form's initial selected values
+            var defaultExpansionId = $('#ExpansionId option:selected').val();
+            var defaultSeasonSlug = $('#SeasonSlug option:selected').val();
+            
+            if (params.ExpansionId && params.ExpansionId !== '0' && params.ExpansionId !== defaultExpansionId) {
+                queryParams.push('expansionId=' + params.ExpansionId);
+            }
+            if (params.SeasonSlug && params.SeasonSlug !== defaultSeasonSlug) {
+                queryParams.push('seasonSlug=' + encodeURIComponent(params.SeasonSlug));
+            }
+            if (params.AvoidDungeon) {
+                // Handle multiple select
+                var avoidDungeons = formData
+                    .filter(field => field.name === 'AvoidDungeon')
+                    .map(field => field.value)
+                    .join(',');
+                if (avoidDungeons) {
+                    queryParams.push('avoidDungeons=' + encodeURIComponent(avoidDungeons));
+                }
+            }
+            if (params.MaxKeyLevel && params.MaxKeyLevel !== '15') {
+                queryParams.push('maxKeyLevel=' + params.MaxKeyLevel);
+            }
+            
+            if (queryParams.length > 0) {
+                url += '?' + queryParams.join('&');
+            }
+            
+            return url;
+        }
+        
         function toggleLoading(show) {
             if (show) {
                 $(".loadingSpinner").show();
@@ -33,9 +89,24 @@
                     data: $('form').serialize(),
                     beforeSend: function () { toggleLoading(true); },
                     complete: function () { toggleLoading(false); },
-                    success: function (result) {
+                    success: function (result, status, xhr) {
                         $("#CharInfoDiv").html(result);
-                        $('[data-toggle="tooltip"]').tooltip({ html: true })
+                        $('[data-toggle="tooltip"]').tooltip({ html: true });
+                        
+                        // Generate and display shareable URL
+                        var formData = $('form').serializeArray();
+                        var shareableUrl = generateShareableUrl(formData);
+                        
+                        // Update browser URL without page reload
+                        if (window.history && window.history.pushState) {
+                            var path = shareableUrl.replace(window.location.origin, '');
+                            window.history.pushState(null, '', path);
+                        }
+                        
+                        // Show share section
+                        $('#shareableUrl').val(shareableUrl);
+                        $('#shareSection').show();
+                        $('#copySuccess').hide();
                     },
                     error: function (xhr) {
                         $("#CharInfoDiv").html(`<div class="alert alert-danger " role="alert"><div>${xhr.responseText}</div></div>`);
@@ -60,13 +131,13 @@
 
                 items.forEach(function (item) {
                     if (item.selected) selectedVal = item.value;
-                    var optionData = '<option value="' + item.value + '" title="' + item.title + '">' + item.text + '</option>';
+                    var optionData = '<option value="' + item.value + '" title="' + item.title + '"' + (item.selected ? ' selected' : '') + '>' + item.text + '</option>';
                     select.append(optionData);
                 });
 
                 select.selectpicker('destroy');
-                if (selectedVal !== "") select.selectpicker('val', selectedVal);
                 select.selectpicker('render');
+                if (selectedVal !== "") select.selectpicker('val', selectedVal);
             };
 
             function GetSelectItems(action, id, select, finishCallBack) {
@@ -114,23 +185,65 @@
             });
 
 
-            var lastAjaxCall = GetSelectItems('GetRealms', regionSelect.val(), realmSelect);
-            GetSelectItems('GetSeasons', expansionSelect.val(), seasonSelect, function () {
-                GetSelectItems('GetDungeons', JSON.stringify({ Season: seasonSelect.val(), Expansion: expansionSelect.val() }), dungSelect);
-            });
-
-
-            Promise.all([lastAjaxCall])
-                .then(function (responses) {
-                    populateFromMemory();
-                })
-                .catch(function (error) {
-                    console.error("An error occurred while fetching data: ", error);
+            @if (ViewBag.IsSharedUrl != true)
+            {
+                <text>
+                var lastAjaxCall = GetSelectItems('GetRealms', regionSelect.val(), realmSelect);
+                GetSelectItems('GetSeasons', expansionSelect.val(), seasonSelect, function () {
+                    GetSelectItems('GetDungeons', JSON.stringify({ Season: seasonSelect.val(), Expansion: expansionSelect.val() }), dungSelect);
                 });
+
+                Promise.all([lastAjaxCall])
+                    .then(function (responses) {
+                        populateFromMemory();
+                    })
+                    .catch(function (error) {
+                        console.error("An error occurred while fetching data: ", error);
+                    });
+                </text>
+            }
+            else
+            {
+                <text>
+                // For shared URLs, data is pre-populated server-side, just call populateFromMemory if needed
+                populateFromMemory();
+                </text>
+            }
 
         });
 
         $('#RememberMe').on('change', function () { if (!$(this).is(':checked')) localStorage.removeItem('characterInfo'); });
+        
+        // Copy to clipboard functionality
+        $('#copyShareUrl').on('click', function() {
+            var urlInput = document.getElementById('shareableUrl');
+            urlInput.select();
+            urlInput.setSelectionRange(0, 99999); // For mobile devices
+            
+            try {
+                document.execCommand('copy');
+                $('#copySuccess').fadeIn().delay(2000).fadeOut();
+            } catch (err) {
+                // Fallback for browsers that don't support execCommand
+                navigator.clipboard.writeText(urlInput.value).then(function() {
+                    $('#copySuccess').fadeIn().delay(2000).fadeOut();
+                }).catch(function(err) {
+                    console.error('Failed to copy: ', err);
+                });
+            }
+        });
+        
+        // For shared URLs, just refresh selectpickers and show results - no auto-submit needed
+        @if (ViewBag.IsSharedUrl == true)
+        {
+            <text>
+            document.addEventListener('DOMContentLoaded', function() {
+                // All data is pre-populated server-side, just refresh selectpickers (except those marked to skip)
+                $('.selectpicker:not([data-skip-init])').selectpicker('refresh');
+                console.log('Shared URL loaded with pre-populated data');
+            });
+            </text>
+        }
 
         function updateStoredInfo(store) {
             if (store) {
@@ -189,9 +302,18 @@
                             </button>
                         </div>
 
-                        <select asp-for="Realm" class="selectpicker form-control" data-live-search="true" required
-                                title="Select Realm" data-size="5">
-                        </select>
+                        @if (ViewBag.IsSharedUrl == true && ViewBag.RealmsList != null)
+                        {
+                            @Html.DropDownListFor(m => m.Realm, (SelectList)ViewBag.RealmsList, "Select Realm", 
+                                new { @class = "selectpicker form-control", data_live_search = "true", required = "required", 
+                                      title = "Select Realm", data_size = "5", data_skip_init = "true" })
+                        }
+                        else
+                        {
+                            <select asp-for="Realm" class="selectpicker form-control" data-live-search="true" required
+                                    title="Select Realm" data-size="5">
+                            </select>
+                        }
                     </div>
                 </div>
                 <div class="row mb-2">
@@ -247,7 +369,15 @@
                             </button>
                         </div>
                         <select asp-for="SeasonSlug" class="selectpicker form-control" data-live-search="true" required
-                                title="Select Season" data-size="5"></select>
+                                title="Select Season" data-size="5">
+                            @if (ViewBag.IsSharedUrl == true && ViewBag.seasons != null)
+                            {
+                                @foreach (var season in ViewBag.seasons)
+                                {
+                                    <option value="@season.Value" title="@season.Title" selected="@season.Selected">@season.Text</option>
+                                }
+                            }
+                        </select>
 
 
                     </div>
@@ -266,7 +396,15 @@
                         </div>
                         <select asp-for="AvoidDungeon" class="selectpicker form-control"
                                 multiple data-actions-box="true"
-                                title="Dont avoid any dungeons"></select>
+                                title="Dont avoid any dungeons">
+                            @if (ViewBag.IsSharedUrl == true && ViewBag.dungeons != null)
+                            {
+                                @foreach (var dungeon in ViewBag.dungeons)
+                                {
+                                    <option value="@dungeon.Value" title="@dungeon.Title" selected="@dungeon.Selected">@dungeon.Text</option>
+                                }
+                            }
+                        </select>
                     </div>
                     <div class="col-4 position-relative">
                         <Label asp-for="MaxKeyLevel" class="mb-1 form-label"></Label>
@@ -296,6 +434,23 @@
 
                     </div>
                 </div>
+                
+                @* Share Section - Initially Hidden *@
+                <div id="shareSection" class="row mb-3" @(ViewBag.ShowShareSection == true ? "" : "style=\"display:none;\"")>
+                    <div class="col">
+                        <hr />
+                        <h6><i class="fa-solid fa-share-nodes"></i> Share This Plan</h6>
+                        <div class="input-group">
+                            <input type="text" id="shareableUrl" class="form-control" readonly value="@(ViewBag.ShareableUrl ?? "")" />
+                            <button class="btn btn-outline-secondary" type="button" id="copyShareUrl" title="Copy to clipboard">
+                                <i class="fa-solid fa-copy"></i>
+                            </button>
+                        </div>
+                        <small id="copySuccess" class="text-success" style="display:none;">
+                            <i class="fa-solid fa-check"></i> Link copied to clipboard!
+                        </small>
+                    </div>
+                </div>
 
 
                 @* <div class="row mb-3">
@@ -318,6 +473,18 @@
         </div>
 
         <div class="col mt-5" id="CharInfoDiv">
+
+            @* Render character results if provided via ViewBag (for shared URLs) *@
+            @if (ViewBag.CharacterResult != null)
+            {
+                @Html.Partial("_CharInfo", ViewBag.CharacterResult as WowCharacterViewModel)
+            }
+            else if (ViewBag.CharacterError != null)
+            {
+                <div class="alert alert-danger" role="alert">
+                    @ViewBag.CharacterError
+                </div>
+            }
 
             <div class="mb-3">
                 <h3>
