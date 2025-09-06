@@ -2,276 +2,20 @@
 @section scripts {
     <script>
 
-        function generateShareableUrl(formData) {
-            // Extract form values
-            var params = {};
-            formData.forEach(function(field) {
-                if (field.value) {
-                    params[field.name] = field.value;
-                }
-            });
-            
-            // Build the shareable URL
-            var baseUrl = window.location.origin;
-            
-            // Convert region enum value to string name
-            var regionMap = { '0': 'us', '1': 'eu', '2': 'tw', '3': 'kr' };
-            var region = regionMap[params.Region] || 'us';
-            
-            var realm = encodeURIComponent(params.Realm || '');
-            var character = encodeURIComponent(params.CharacterName || '');
-            var targetScore = params.TargetRating || 0;
-            
-            var url = baseUrl + '/share/' + region + '/' + realm + '/' + character + '/' + targetScore;
-            
-            // Add optional query parameters (only if different from defaults)
-            var queryParams = [];
-            
-            // Get current defaults from the form's initial selected values
-            var defaultExpansionId = $('#ExpansionId option:selected').val();
-            var defaultSeasonSlug = $('#SeasonSlug option:selected').val();
-            
-            if (params.ExpansionId && params.ExpansionId !== '0' && params.ExpansionId !== defaultExpansionId) {
-                queryParams.push('expansionId=' + params.ExpansionId);
-            }
-            if (params.SeasonSlug && params.SeasonSlug !== defaultSeasonSlug) {
-                queryParams.push('seasonSlug=' + encodeURIComponent(params.SeasonSlug));
-            }
-            if (params.AvoidDungeon) {
-                // Handle multiple select
-                var avoidDungeons = formData
-                    .filter(field => field.name === 'AvoidDungeon')
-                    .map(field => field.value)
-                    .join(',');
-                if (avoidDungeons) {
-                    queryParams.push('avoidDungeons=' + encodeURIComponent(avoidDungeons));
-                }
-            }
-            if (params.MaxKeyLevel && params.MaxKeyLevel !== '15') {
-                queryParams.push('maxKeyLevel=' + params.MaxKeyLevel);
-            }
-            
-            if (queryParams.length > 0) {
-                url += '?' + queryParams.join('&');
-            }
-            
-            return url;
-        }
-        
-        function toggleLoading(show) {
-            if (show) {
-                $(".loadingSpinner").show();
-                $('[role="status"]').show();
-                $('[role="button"]').hide();
-                $("#CharInfoDiv").addClass("loader");
-            }
-            else {
-                $(".loadingSpinner").hide();
-                $('[role="status"]').hide();
-                $('[role="button"]').show();
-                $("#CharInfoDiv").removeClass("loader");
-            }
-            $(".btn").prop('disabled', show);
-
-        }
-
-        $(function () {
-            $("form").on("submit", function (e) {
-                e.preventDefault();
-
-                var rememberMe = $('#RememberMe').is(':checked');
-                updateStoredInfo(rememberMe);
-
-                $.ajax({
-                    url: "/@ViewContext.RouteData.Values["controller"]/ProcessCharacter",
-                    type: "get",
-                    dataType: "html",
-                    data: $('form').serialize(),
-                    beforeSend: function () { toggleLoading(true); },
-                    complete: function () { toggleLoading(false); },
-                    success: function (result, status, xhr) {
-                        $("#CharInfoDiv").html(result);
-                        $('[data-toggle="tooltip"]').tooltip({ html: true });
-                        
-                        // Generate and display shareable URL
-                        var formData = $('form').serializeArray();
-                        var shareableUrl = generateShareableUrl(formData);
-                        
-                        // Update browser URL without page reload
-                        if (window.history && window.history.pushState) {
-                            var path = shareableUrl.replace(window.location.origin, '');
-                            window.history.pushState(null, '', path);
-                        }
-                        
-                        // Show share section
-                        $('#shareableUrl').val(shareableUrl);
-                        $('#shareSection').show();
-                        $('#copySuccess').hide();
-                    },
-                    error: function (xhr) {
-                        $("#CharInfoDiv").html(`<div class="alert alert-danger " role="alert"><div>${xhr.responseText}</div></div>`);
-                    }
-                });
-
-            });
-        });
-
-        $(function () {
-            var regionSelect = $('#@(Html.NameFor(m => m.Region))');
-            var realmSelect = $('#@(Html.NameFor(m => m.Realm))');
-            var expansionSelect = $('#@(Html.NameFor(m => m.ExpansionId))');
-            var seasonSelect = $('#@(Html.NameFor(m => m.SeasonSlug))');
-            var dungSelect = $('#@(Html.NameFor(m => m.AvoidDungeon))');
-
-            function populateSelect(select, items) {
-                select.html('');
-                //select.append('<option value="" disabled>Select one--</option>');
-
-                var selectedVal = "";
-
-                items.forEach(function (item) {
-                    if (item.selected) selectedVal = item.value;
-                    var optionData = '<option value="' + item.value + '" title="' + item.title + '"' + (item.selected ? ' selected' : '') + '>' + item.text + '</option>';
-                    select.append(optionData);
-                });
-
-                select.selectpicker('destroy');
-                select.selectpicker('render');
-                if (selectedVal !== "") select.selectpicker('val', selectedVal);
-            };
-
-            function GetSelectItems(action, id, select, finishCallBack) {
-                return $.ajax({
-                    url: '/@ViewContext.RouteData.Values["controller"]/' + action,
-                    type: 'GET',
-                    datatype: 'JSON',
-                    data: { id },
-                    beforeSend: function () {
-                        $('#Load' + action).show();
-                        select.selectpicker('hide')
-                    },
-                    complete: function () {
-                        select.selectpicker('show');
-                        $('#Load' + action).hide();
-                        select.selectpicker('render');
-                        if (finishCallBack !== undefined) finishCallBack();
-
-
-                    },
-                    success: function (data) { populateSelect(select, data); }
-                });
-
-            }
-
-
-            //Dropdownlist Selectedchange event
-            regionSelect.change(function () {
-                var selectedRegion = this.options[this.selectedIndex].value;
-                GetSelectItems('GetRealms', selectedRegion, realmSelect);
-            });
-
-            expansionSelect.change(function () {
-                var selectedExp = this.options[this.selectedIndex].value;
-                GetSelectItems('GetSeasons', selectedExp, seasonSelect, function () {
-                    var selectedSeason = seasonSelect.val();
-                    GetSelectItems('GetDungeons', JSON.stringify({ Season: selectedSeason, Expansion: selectedExp }), dungSelect);
-                });
-            });
-
-            seasonSelect.change(function () {
-                var selectedExp = expansionSelect.val();
-                var selectedSeason = this.options[this.selectedIndex].value;
-                GetSelectItems('GetDungeons', JSON.stringify({ Season: selectedSeason, Expansion: selectedExp }), dungSelect);
-            });
-
-
-            @if (ViewBag.IsSharedUrl != true)
-            {
-                <text>
-                var lastAjaxCall = GetSelectItems('GetRealms', regionSelect.val(), realmSelect);
-                GetSelectItems('GetSeasons', expansionSelect.val(), seasonSelect, function () {
-                    GetSelectItems('GetDungeons', JSON.stringify({ Season: seasonSelect.val(), Expansion: expansionSelect.val() }), dungSelect);
-                });
-
-                Promise.all([lastAjaxCall])
-                    .then(function (responses) {
-                        populateFromMemory();
-                    })
-                    .catch(function (error) {
-                        console.error("An error occurred while fetching data: ", error);
-                    });
-                </text>
-            }
-            else
-            {
-                <text>
-                // For shared URLs, data is pre-populated server-side, just call populateFromMemory if needed
-                populateFromMemory();
-                </text>
-            }
-
-        });
-
-        $('#RememberMe').on('change', function () { if (!$(this).is(':checked')) localStorage.removeItem('characterInfo'); });
-        
-        // Copy to clipboard functionality
-        $('#copyShareUrl').on('click', function() {
-            var urlInput = document.getElementById('shareableUrl');
-            urlInput.select();
-            urlInput.setSelectionRange(0, 99999); // For mobile devices
-            
-            try {
-                document.execCommand('copy');
-                $('#copySuccess').fadeIn().delay(2000).fadeOut();
-            } catch (err) {
-                // Fallback for browsers that don't support execCommand
-                navigator.clipboard.writeText(urlInput.value).then(function() {
-                    $('#copySuccess').fadeIn().delay(2000).fadeOut();
-                }).catch(function(err) {
-                    console.error('Failed to copy: ', err);
-                });
-            }
-        });
-        
-        // For shared URLs, just refresh selectpickers and show results - no auto-submit needed
-        @if (ViewBag.IsSharedUrl == true)
+        window.MPLUS =
         {
-            <text>
-            document.addEventListener('DOMContentLoaded', function() {
-                // All data is pre-populated server-side, just refresh selectpickers (except those marked to skip)
-                $('.selectpicker:not([data-skip-init])').selectpicker('refresh');
-                console.log('Shared URL loaded with pre-populated data');
-            });
-            </text>
-        }
-
-        function updateStoredInfo(store) {
-            if (store) {
-                var characterInfo = {
-                    reagion: $("#Region").val(),
-                    realm: $("#Realm").val(),
-                    name: $("#CharacterName").val()
-                };
-                localStorage.setItem('characterInfo', JSON.stringify(characterInfo));
+            controllerBase: '/@ViewContext.RouteData.Values["controller"]',
+            init: {
+                region: '@(Model?.Region != null ? ((int)Model.Region).ToString() : "")',
+                realm: '@(Model?.Realm ?? "")',
+                expansionId: '@(Model?.ExpansionId == 0 ? "" : Model?.ExpansionId.ToString())',
+                seasonSlug: '@(Model?.SeasonSlug ?? "")',
+                avoidDungeon: @(Model?.AvoidDungeon?.Count > 0 ? Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AvoidDungeon)) : Html.Raw("[]")),
+                fromUrl: @((Model?.FromUrl ?? false).ToString().ToLower())
             }
-            else {
-                localStorage.removeItem('characterInfo');
-            }
-        }
-        function populateFromMemory() {
-            var storedCharacterInfo = localStorage.getItem('characterInfo');
-            if (storedCharacterInfo) {
-                var characterInfo = JSON.parse(storedCharacterInfo);
-                $("#Region").val(characterInfo.reagion);                
-                $("#Realm").selectpicker('val', characterInfo.realm);
-                $("#CharacterName").val(characterInfo.name);
-                $('#RememberMe').prop('checked', true);
-                $("#TargetRating").focus();
-            }
-
-
-        }
+        };
     </script>
+    <script src="~/js/mplus.js" asp-append-version="true"></script>
 }
 <form class="needs-validation" novalidate>
     <div class="row">
@@ -279,7 +23,7 @@
             <div class="container px-4 sticky-top">
                 <div class="row">
                     <div class="col">
-                        <h2><a class="navbar-brand" asp-controller="Home" asp-action="Index">Mythic Keystone Planner</a></h2>
+                        <h2><a class="navbar-brand" href="/">Mythic Keystone Planner</a></h2>
                         Find out what mythic plus keys you should run to achieve a target rating!
                         <hr />
                     </div>
@@ -302,18 +46,9 @@
                             </button>
                         </div>
 
-                        @if (ViewBag.IsSharedUrl == true && ViewBag.RealmsList != null)
-                        {
-                            @Html.DropDownListFor(m => m.Realm, (SelectList)ViewBag.RealmsList, "Select Realm", 
-                                new { @class = "selectpicker form-control", data_live_search = "true", required = "required", 
-                                      title = "Select Realm", data_size = "5", data_skip_init = "true" })
-                        }
-                        else
-                        {
-                            <select asp-for="Realm" class="selectpicker form-control" data-live-search="true" required
-                                    title="Select Realm" data-size="5">
-                            </select>
-                        }
+                        <select asp-for="Realm" class="selectpicker form-control" data-live-search="true" required
+                                title="Select Realm" data-size="5">
+                        </select>
                     </div>
                 </div>
                 <div class="row mb-2">
@@ -331,16 +66,17 @@
                         </div>
                     </div>
                 </div>
-
-                <div class="row mb-3">
-                    <div class="col">
-                        <div class="form-check form-switch">
-                            <input type="checkbox" name="RememberMe" id="RememberMe" class="form-check-input" />
-                            <Label for="RememberMe" class="form-check-label">Remember Me</Label>
+                @if (!(Model?.FromUrl ?? false))
+                {
+                    <div class="row mb-3">
+                        <div class="col">
+                            <div class="form-check form-switch">
+                                <input type="checkbox" name="RememberMe" id="RememberMe" class="form-check-input" />
+                                <Label for="RememberMe" class="form-check-label">Remember Me</Label>
+                            </div>
                         </div>
                     </div>
-                </div>
-
+                }
                 <div class="row mt-3">
                     <div class="col AdvancedOptions">
                         <hr />
@@ -369,15 +105,7 @@
                             </button>
                         </div>
                         <select asp-for="SeasonSlug" class="selectpicker form-control" data-live-search="true" required
-                                title="Select Season" data-size="5">
-                            @if (ViewBag.IsSharedUrl == true && ViewBag.seasons != null)
-                            {
-                                @foreach (var season in ViewBag.seasons)
-                                {
-                                    <option value="@season.Value" title="@season.Title" selected="@season.Selected">@season.Text</option>
-                                }
-                            }
-                        </select>
+                                title="Select Season" data-size="5"></select>
 
 
                     </div>
@@ -396,19 +124,11 @@
                         </div>
                         <select asp-for="AvoidDungeon" class="selectpicker form-control"
                                 multiple data-actions-box="true"
-                                title="Dont avoid any dungeons">
-                            @if (ViewBag.IsSharedUrl == true && ViewBag.dungeons != null)
-                            {
-                                @foreach (var dungeon in ViewBag.dungeons)
-                                {
-                                    <option value="@dungeon.Value" title="@dungeon.Title" selected="@dungeon.Selected">@dungeon.Text</option>
-                                }
-                            }
-                        </select>
+                                title="Dont avoid any dungeons"></select>
                     </div>
                     <div class="col-4 position-relative">
                         <Label asp-for="MaxKeyLevel" class="mb-1 form-label"></Label>
-                        <input asp-for="MaxKeyLevel" class="form-control" data-bs-theme="light" value="15" />
+                        <input asp-for="MaxKeyLevel" class="form-control" data-bs-theme="light" value="@(Model?.MaxKeyLevel ?? 15)" />
                         <div class="invalid-tooltip">
                             Key level can only be a value between 2 and 30.
                         </div>
@@ -429,14 +149,12 @@
                             <span class="spinner-border spinner-border-sm loadingSpinner" role="status" aria-hidden="true" style="display:none"></span>
                             <span role="status" style="display:none">Loading...</span>
                             <span role="button">Submit</span>
-
                         </button>
-
                     </div>
                 </div>
-                
+
                 @* Share Section - Initially Hidden *@
-                <div id="shareSection" class="row mb-3" @(ViewBag.ShowShareSection == true ? "" : "style=\"display:none;\"")>
+                <div id="shareSection" class="row mb-3 d-none">
                     <div class="col">
                         <hr />
                         <h6><i class="fa-solid fa-share-nodes"></i> Share This Plan</h6>
@@ -450,189 +168,166 @@
                             <i class="fa-solid fa-check"></i> Link copied to clipboard!
                         </small>
                     </div>
-                </div>
-
-
-                @* <div class="row mb-3">
-                <div class="col">
-                <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7855962973375225"
-                crossorigin="anonymous"></script>
-                <!-- Ad Unit -->
-                <ins class="adsbygoogle"
-                style="display:block"
-                data-ad-client="ca-pub-7855962973375225"
-                data-ad-slot="4449400025"
-                data-ad-format="auto"
-                data-full-width-responsive="true"></ins>
-                <script>
-                (adsbygoogle = window.adsbygoogle || []).push({});
-                </script>
-                </div>
-                </div> *@
+                </div>              
             </div>
         </div>
 
         <div class="col mt-5" id="CharInfoDiv">
-
-            @* Render character results if provided via ViewBag (for shared URLs) *@
-            @if (ViewBag.CharacterResult != null)
+            @if (Model?.FromUrl ?? false)
             {
-                @Html.Partial("_CharInfo", ViewBag.CharacterResult as WowCharacterViewModel)
+                <text>
+                    Loading...
+                </text>
             }
-            else if (ViewBag.CharacterError != null)
+            else
             {
-                <div class="alert alert-danger" role="alert">
-                    @ViewBag.CharacterError
+                <div class="mb-3">
+                    <h3>
+                        Discord Bot
+                        <span class="badge bg-success">NEW</span>
+                    </h3>
+                    <a href="https://discord.com/oauth2/authorize?client_id=1352366557334081757&permissions=0&integration_type=0&scope=bot">Invite the Mythic Planner Discord Bot to your Discord Server</a>
+                    <p>
+                        It will allow you to use /plan command on chat to get the results directly on your discord
+                        <img src="~/images/discordbot.png" />
+                    </p>
                 </div>
-            }
+                <div>
+                    <h3>How To Use This Website:</h3>
 
-            <div class="mb-3">
-                <h3>
-                    Discord Bot
-                    <span class="badge bg-success">NEW</span>
-                </h3>
-                <a href="https://discord.com/oauth2/authorize?client_id=1352366557334081757&permissions=0&integration_type=0&scope=bot">Invite the Mythic Planner Discord Bot to your Discord Server</a>
-                <p>
-                    It will allow you to use /plan command on chat to get the results directly on your discord
-                    <img src="~/images/discordbot.png" />
-                </p>
-            </div>
-            <div>
-                <h3>How To Use This Website:</h3>
-
-                <p class="lead">
-                    Start by entering your World of Warcraft&trade; character information on the left form:
-                </p>
-                <ul>
-                    <li><b>Region</b>: The region where your character lives</li>
-                    <li><b>Realm</b>: The realm of your character</li>
-                    <li><b>Character Name</b>: Your character&rsquo;s name</li>
-                    <li><b>Target Rating</b>: The Mythic+ Rating you would like to achieve.</li>
-                    <li><b>Avoid a Dungeon</b>: Select your least favorite dungeon that you would like to exclude from the results.</li>
-                    <li><b>Max Level</b>: The maximum key level you are willing to attempt. (Maximum acceptable value is 30)</li>
-                    <li>
-                        <b>Get the rating this week</b>: When this option is enabled. it will only suggest runs for this week, with the current first affix. If this is disabled, then it will
-                        suggest results for both the current week and next week.
-                    </li>
+                    <p class="lead">
+                        Start by entering your World of Warcraft&trade; character information on the left form:
+                    </p>
+                    <ul>
+                        <li><b>Region</b>: The region where your character lives</li>
+                        <li><b>Realm</b>: The realm of your character</li>
+                        <li><b>Character Name</b>: Your character&rsquo;s name</li>
+                        <li><b>Target Rating</b>: The Mythic+ Rating you would like to achieve.</li>
+                        <li><b>Avoid a Dungeon</b>: Select your least favorite dungeon that you would like to exclude from the results.</li>
+                        <li><b>Max Level</b>: The maximum key level you are willing to attempt. (Maximum acceptable value is 30)</li>
+                        <li>
+                            <b>Get the rating this week</b>: When this option is enabled. it will only suggest runs for this week, with the current first affix. If this is disabled, then it will
+                            suggest results for both the current week and next week.
+                        </li>
 
 
-                </ul>
-            </div>
-            <div>
-                <h3>Understanding the Results:</h3>
-                <p>
-                    Once you successfully enter the information and press submit, this tool will evaluate your current overall rating as well as your rating for each dungeon. With that information
-                    it will generate multiple options, from the hardest but fastest to the easiest but longest.
-                </p>
-                <p>
-                    Each option will have the suggested dungeons, the minimum key level, and the minimum time to finish it to get the ratings. If you successfully finished all the suggested keys, you would have the desired rating.
-                </p>
-            </div>
-            <div>
-                <h3>How it Works:</h3>
-                <p>
-                    To understand how this tool works, first we need to understand how World of Warcraft&trade; calculates Mythic+ Rating:
-                </p>
-                <p>
-                    Each key level gives a different "base" score. the following table shows how the base scores are distributed as follows:
+                    </ul>
+                </div>
+                <div>
+                    <h3>Understanding the Results:</h3>
+                    <p>
+                        Once you successfully enter the information and press submit, this tool will evaluate your current overall rating as well as your rating for each dungeon. With that information
+                        it will generate multiple options, from the hardest but fastest to the easiest but longest.
+                    </p>
+                    <p>
+                        Each option will have the suggested dungeons, the minimum key level, and the minimum time to finish it to get the ratings. If you successfully finished all the suggested keys, you would have the desired rating.
+                    </p>
+                </div>
+                <div>
+                    <h3>How it Works:</h3>
+                    <p>
+                        To understand how this tool works, first we need to understand how World of Warcraft&trade; calculates Mythic+ Rating:
+                    </p>
+                    <p>
+                        Each key level gives a different "base" score. the following table shows how the base scores are distributed as follows:
 
-                    <div class="d-flex justify-content-center">
-                        <div style="max-height:300px;overflow-y:scroll">
-                            <table class="table table-bordered sticky-header">
-                                <thead class="thead-dark bg-dark">
-                                    <tr>
-                                        <th>Key Level</th>
-                                        <th>Base Score</th>
-                                        <th>Min Score</th>
-                                        <th>Max Score</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var metric in ViewBag.dungeonMatrix)
-                                    {
+                        <div class="d-flex justify-content-center">
+                            <div style="max-height:300px;overflow-y:scroll">
+                                <table class="table table-bordered sticky-header">
+                                    <thead class="thead-dark bg-dark">
                                         <tr>
-
-                                            <td>@metric.Level</td>
-                                            <td>@metric.Base</td>
-                                            <td>@metric.Min</td>
-                                            <td>@metric.Max</td>
+                                            <th>Key Level</th>
+                                            <th>Base Score</th>
+                                            <th>Min Score</th>
+                                            <th>Max Score</th>
                                         </tr>
-                                    }
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var metric in ViewBag.dungeonMatrix)
+                                        {
+                                            <tr>
+
+                                                <td>@metric.Level</td>
+                                                <td>@metric.Base</td>
+                                                <td>@metric.Min</td>
+                                                <td>@metric.Max</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+
                         </div>
+                        <span class="text-warning">Note: The above table was generated using some questionable analytics on a very limited number of datasets. Please keep in mind that it might not be 100% accurate.</span>
+                    </p>
+                    <p>
+                        The "Base Score" in the above table represent the rating you would get if you finished the dungeon exactly on time. However, you will get more rating (up to the "Max Score" from the table) if you finish the
+                        dungeon before it's time limit. Similarly, if you finish the dungeon after the time limit you will get less than the base score (down to the "Min Score"), however if you
+                        run time was more than 40% of the time limit then 0 rating is given.
+                    </p>
+                    <p>
+                        How much rating you get is calculated as follows:<br />
+                        First we need to calculate the run time percentage. The run time percentage is calculated as follows:
+                        <br />
+                        <div class="code eq" data-eqNo="Eq. 1">
+                            <var>P<sub>T</sub></var> = Min[ (<var>T<sub>Limit</sub></var> - <var>T<sub>Run</sub></var>) / <var>T<sub>Limit</sub> </var>, 0.40 ]%
+                        </div>
+                        <br /> where: <br />
+                        <var>T<sub>Limit</sub></var> = The dungeon's time limit. <br />
+                        <var>T<sub>Run</sub></var> = Your dungeon's run time. <br />
+                        Note that the result value is capped at 40% using "Min". i.e. it takes the minimum between the calculated value and 40%.
+                    </p>
+                    <p>
+                        Using calculated percentage from Eq. 1, we can calculate the run's rating as follows: <br />
+                        <div class="code eq" data-eqNo="Eq. 2">
+                            <var>Rating</var> = <var>Base<sub>level</sub> + (<var>P<sub>T</sub></var> * 37.5) </var>
+                        </div>
+                        <br /> where: <br />
+                        <var>P<sub>T</sub></var> = The time percentage calculated in the previous step. <br />
+                        <var>Base<sub>level</sub></var> = The base score for the key level, looked up from the table above. <br />
+                    </p>
 
-                    </div>
-                    <span class="text-warning">Note: The above table was generated using some questionable analytics on a very limited number of datasets. Please keep in mind that it might not be 100% accurate.</span>
-                </p>
-                <p>
-                    The "Base Score" in the above table represent the rating you would get if you finished the dungeon exactly on time. However, you will get more rating (up to the "Max Score" from the table) if you finish the
-                    dungeon before it's time limit. Similarly, if you finish the dungeon after the time limit you will get less than the base score (down to the "Min Score"), however if you
-                    run time was more than 40% of the time limit then 0 rating is given.
-                </p>
-                <p>
-                    How much rating you get is calculated as follows:<br />
-                    First we need to calculate the run time percentage. The run time percentage is calculated as follows:
-                    <br />
-                    <div class="code eq" data-eqNo="Eq. 1">
-                        <var>P<sub>T</sub></var> = Min[ (<var>T<sub>Limit</sub></var> - <var>T<sub>Run</sub></var>) / <var>T<sub>Limit</sub> </var>, 0.40 ]%
-                    </div>
-                    <br /> where: <br />
-                    <var>T<sub>Limit</sub></var> = The dungeon's time limit. <br />
-                    <var>T<sub>Run</sub></var> = Your dungeon's run time. <br />
-                    Note that the result value is capped at 40% using "Min". i.e. it takes the minimum between the calculated value and 40%.
-                </p>
-                <p>
-                    Using calculated percentage from Eq. 1, we can calculate the run's rating as follows: <br />
-                    <div class="code eq" data-eqNo="Eq. 2">
-                        <var>Rating</var> = <var>Base<sub>level</sub> + (<var>P<sub>T</sub></var> * 37.5) </var>
-                    </div>
-                    <br /> where: <br />
-                    <var>P<sub>T</sub></var> = The time percentage calculated in the previous step. <br />
-                    <var>Base<sub>level</sub></var> = The base score for the key level, looked up from the table above. <br />
-                </p>
+                    <p>
+                        For example:<br />
+                        if you ran a level 7 key. assuming the time limit for that dungeon is 33 minutes ( = 1980 seconds in total) and
+                        you completed it in 27mins and 47 seconds ( = 1667 seconds in total) then the rating for this run can be calculated as follows:<br />
+                        <div class="code">
+                            <var>P<sub>T</sub></var> = (1980 - 1667) / 1980 = 15.81%
+                        </div>
+                        <br />
+                        Note that if the result was higher than 40% then we cap it at 40% <br />
 
-                <p>
-                    For example:<br />
-                    if you ran a level 7 key. assuming the time limit for that dungeon is 33 minutes ( = 1980 seconds in total) and
-                    you completed it in 27mins and 47 seconds ( = 1667 seconds in total) then the rating for this run can be calculated as follows:<br />
-                    <div class="code">
-                        <var>P<sub>T</sub></var> = (1980 - 1667) / 1980 = 15.81%
-                    </div>
-                    <br />
-                    Note that if the result was higher than 40% then we cap it at 40% <br />
+                        Next step is to calculate the dungeon rating:<br />
+                        given that the key level was 7 in this example. we look up the base score to be 265 from the table above. <br />
+                        and 15.81% = 15.81/100 = 0.1581 <br />
+                        <div class="code">
+                            <var>Rating</var> = 265 + (0.1581 * 37.5) ≈ 270.9
+                        </div>
+                    </p>
 
-                    Next step is to calculate the dungeon rating:<br />
-                    given that the key level was 7 in this example. we look up the base score to be 265 from the table above. <br />
-                    and 15.81% = 15.81/100 = 0.1581 <br />
-                    <div class="code">
-                        <var>Rating</var> = 265 + (0.1581 * 37.5) ≈ 270.9
-                    </div>
-                </p>
-
-                <p>
-                    For calculating overtime runs, it's a very similar process, except, the moment the key is over time, 15 ratings is taken away from the base, and then the rest is taken away
-                    depend on the time percentage: <br />
-                    <div class="code eq" data-eqNo="Eq. 3">
-                        <var>Rating</var> = <var>Base<sub>level</sub> + (<var>P<sub>T</sub></var> * 37.5) - 15 </var>
-                    </div><br />
-                    Notes:
-                    <ol>
-                        <li>
-                            when calculating <var>P<sub>T</sub></var> here, it's the same exact formula above (Eq. 1), but since the run time is bigger than the time limit then the percentage would be negative, therefore subtracting from the base score
-                        </li>
-                        <li>
-                            If <var>P<sub>T</sub></var> > 40% then 0 rating is given to this dungeon
-                        </li>
-                        @*  <li>
+                    <p>
+                        For calculating overtime runs, it's a very similar process, except, the moment the key is over time, 15 ratings is taken away from the base, and then the rest is taken away
+                        depend on the time percentage: <br />
+                        <div class="code eq" data-eqNo="Eq. 3">
+                            <var>Rating</var> = <var>Base<sub>level</sub> + (<var>P<sub>T</sub></var> * 37.5) - 15 </var>
+                        </div><br />
+                        Notes:
+                        <ol>
+                            <li>
+                                when calculating <var>P<sub>T</sub></var> here, it's the same exact formula above (Eq. 1), but since the run time is bigger than the time limit then the percentage would be negative, therefore subtracting from the base score
+                            </li>
+                            <li>
+                                If <var>P<sub>T</sub></var> > 40% then 0 rating is given to this dungeon
+                            </li>
+                            @*  <li>
                         If the key level is 21 or higher, then not timing it will use the base score for a level 20 key.
                         for example, if the key level is 26 and it was over the time limit then <var>Base<sub>20</sub></var> = 170 (and not 212) is used for the calculations
                         </li> *@
-                    </ol>
+                        </ol>
 
-                </p>
+                    </p>
 
-                @* <p>
+                    @* <p>
                 All this is half the story. We cannot forget about the alternating weeks (Tyrannical and Fortified). For each dungeon, you will have 2 ratings, the best rating you got for Tyrannical
                 and another for Fortified. The way they are combined is as follows: <br />
                 <div class="code eq" data-eqNo="Eq. 4">
@@ -671,12 +366,13 @@
 
                 <p>Note that the best rating for each affix (Tyrannical and Fortified) for each dungeon is the one used for the final mythic rating.</p> *@
 
-                <p>
-                    Using the above formulas, this tool applies them backwards. when you set a target rating. the tool fetches all your runs from raider.io and calculates what is the
-                    minimum key level and run time required to achieve that over all rating. by giving you options on how many runs are required to achieve the rating<br />
-                    For more details on the entire code, you can find it on github: <a href="https://github.com/SamFarah/RatingCalculator" target="_blank">https://github.com/SamFarah/RatingCalculator</a>
-                </p>
-            </div>
+                    <p>
+                        Using the above formulas, this tool applies them backwards. when you set a target rating. the tool fetches all your runs from raider.io and calculates what is the
+                        minimum key level and run time required to achieve that over all rating. by giving you options on how many runs are required to achieve the rating<br />
+                        For more details on the entire code, you can find it on github: <a href="https://github.com/SamFarah/RatingCalculator" target="_blank">https://github.com/SamFarah/RatingCalculator</a>
+                    </p>
+                </div>
+            }
         </div>
     </div>
 </form>

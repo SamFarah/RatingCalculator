@@ -35,4 +35,5 @@ public class WowCharacterViewModel
     public DateTime LastCrawledAt { get; set; }
     public string? ProfileUrl { get; set; }
     public int ThisWeekAffixId { get; set; }
+    public string? ShareableUrl { get; set; }
 }

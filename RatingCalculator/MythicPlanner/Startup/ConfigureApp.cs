@@ -19,14 +19,8 @@ public static class WebAppExtensions
 
         app.UseRouting();
 
-        app.UseAuthorization();
-        
-        // Shareable URL route
-        app.MapControllerRoute(
-            name: "share",
-            pattern: "share/{region}/{realm}/{character}/{targetScore}",
-            defaults: new { controller = "Home", action = "Share" });
-            
+        app.UseAuthorization();        
+       
         app.MapControllerRoute(
               name: "default",
               pattern: "{controller=Home}/{action=Index}/{id?}");
