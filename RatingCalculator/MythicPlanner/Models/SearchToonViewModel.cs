@@ -39,4 +39,6 @@ public class SearchToonViewModel
 
     [Display(Name = "Expansion")]
     public int ExpansionId { get; set; } = 0;
+
+    public bool FromUrl { get; set; }
 }
