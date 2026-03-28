@@ -63,15 +63,15 @@ public class RcService : IRcService
         {
             Id = 158,
             Name = "Xal'atath's Bargain: Voidbound",
-            Description = "While in combat, Xal'atath summons a Void Emissary that empowers nearby enemies. Upon defeating the Void Emissary, players will net themselves a +20% ability cooldown rate and +10% Critical Strike increase that lasts 20 seconds.",
+            Description = "While in combat, Xal'atath summons a Voidbound Emissary that empowers nearby enemies.",
             IconUrl = "inv_cosmicvoid_buff",
         },
         new()
         {
-            Id = 159,
-            Name = "Xal'atath's Bargain: Oblivion",
-            Description = "While in combat, Xal'atath manifests crystals from the void that can be absorbed by enemies or players.",
-            IconUrl = "spell_priest_void-blast",
+            Id = 162,
+            Name = "Xal'atath's Bargain: Pulsar",
+            Description = "While in combat, Xal'atath summons pulsars that orbit players.",
+            IconUrl = "inv_cosmicvoid_nova",
         },
         new()
         {
@@ -89,10 +89,10 @@ public class RcService : IRcService
         },
         new()
         {
-            Id = 152,
-            Name = "Challenger's Peril",
-            Description = "Dying subtracts 15 seconds from time remaining.",
-            IconUrl = "achievement_challengemode_everbloom_hourglass",
+            Id = 165,
+            Name = "Lindormi's Guidance",
+            Description = "Lindormi guides players, weakening select non-boss enemies with Temporal Sands and preventing player deaths from reducing time remaining.",
+            IconUrl = "ability_evoker_bronze_01",
         },
 
     };
@@ -275,9 +275,14 @@ public class RcService : IRcService
         return output;
     }
 
-    private async Task<(int l2id, int l4id)> GetWWRotatingAffixIds(string region)
+    private async Task<(int l2id, int l4id)> GetMDRotatingAffixIds(string region)
     {
-        var l4ids = new List<int> { 148, 158, 159, 160 }; // all the Xal'atath's Bargain affixes
+        // 148 Xal'atath's Bargain: Ascendan
+        // 158 Xal'atath's Bargain: Voidbound
+        // 162 Xal'atath's Bargain: Pulsar
+        // 160 Xal'atath's Bargain: Devour
+        // 165 Lindormi's Guidance
+        var l4ids = new List<int> { 148, 158, 162, 160 }; // all the Xal'atath's Bargain affixes
         var l7ids = new List<int> { 9, 10 }; // Tyrannical, Fortified
 
         try
@@ -296,13 +301,13 @@ public class RcService : IRcService
             // if raider.io failed getting affiex, get them with this if it looks stupid but it works, its not stupid ok!
             // its not accurate but it gets something
 
-            var seasonStartDate = new DateTime(2024, 09, 17);
+            var seasonStartDate = new DateTime(2026, 03, 24);
             var today = DateTime.Now.Date;
             var numberOfWeeks = (int)((today - seasonStartDate).TotalDays / 7.0);
-            var l4AffixRotation = new List<int> { 148, 158, 160, 159 }; // assuming the smae order in https://www.wowhead.com/guide/mythic-plus-dungeons/the-war-within-season-1/overview
+            var l4AffixRotation = new List<int> {  162, 160 , 148, 158 }; // assuming the smae order in https://www.wowhead.com/guide/mythic-plus-dungeons/the-war-within-season-1/overview
 
             var weeklyL4Id = l4AffixRotation[numberOfWeeks % 4];
-            var weeklyL7Id = numberOfWeeks % 2 == 0 ? 9 : 10; // alternate 1 week tyr, one week fort
+            var weeklyL7Id = numberOfWeeks % 2 == 0 ? 10 : 9; // alternate 1 week tyr, one week fort
 
             //------------------------------ Workaround End ------------------------------
             return (weeklyL4Id, weeklyL7Id);
@@ -314,9 +319,10 @@ public class RcService : IRcService
         var output = new List<Affix>();
 
         // get weekly affix from raider.io 
-        var (weeklyL4Id, weeklyL7Id) = await _memoryCache.GetCachedValue($"l4l7affixes_{region}", () => GetWWRotatingAffixIds(region));
+        var (weeklyL4Id, weeklyL7Id) = await _memoryCache.GetCachedValue($"l4l7affixes_{region}", () => GetMDRotatingAffixIds(region));
 
-        if (keyLevel >= 4 && keyLevel < 12) output.Add(_affixes.First(x => x.Id == weeklyL4Id)); //Xal'atath's whatever this week is, if key level is less than 12
+        if (keyLevel < 6) output.Add(_affixes.First(x=>x.Id== 165)); //[Lindormi's Guidance]
+        if (keyLevel >= 5 && keyLevel < 12) output.Add(_affixes.First(x => x.Id == weeklyL4Id)); //Xal'atath's whatever this week is, if key level is less than 12
         if (keyLevel >= 7) output.Add(_affixes.First(x => x.Id == weeklyL7Id));
         if (keyLevel >= 10) output.Add(_affixes.First(x => x.Id == (weeklyL7Id == 9 ? 10 : 9))); //  if the weekly is tyr then next one is fort, and vice versa            
         if (keyLevel >= 12) output.Add(_affixes.First(x => x.Id == 147)); // Xal'atath's Guile 
